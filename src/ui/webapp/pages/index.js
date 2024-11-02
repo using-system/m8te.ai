@@ -10,7 +10,7 @@ export default function Home() {
   return (
     <Layout>
       <Head>
-        <title>Accueil | Co.Bike</title>
+        <title>Accueil | co.bike</title>
         <meta name="description" content="Co.Bike - Roulez en sécurité et signalez les incivilités" />
       </Head>
       <div style={{ height: '70vh' }}>
