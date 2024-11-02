@@ -6,7 +6,7 @@ export default function Account() {
   return (
     <Layout>
       <Head>
-        <title>Mon Compte | Co.Bike</title>
+        <title>Mon Compte | co.bike</title>
         <meta name="description" content="Mon Compte - Co.Bike" />
       </Head>
       <div style={{ padding: '20px', textAlign: 'center' }}>

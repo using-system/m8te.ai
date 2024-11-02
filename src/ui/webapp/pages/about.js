@@ -5,7 +5,7 @@ export default function About() {
   return (
     <Layout>
       <Head>
-        <title>À propos | Co.Bike</title>
+        <title>À propos | co.bike</title>
         <meta name="description" content="À propos de Co.Bike - Roulez en sécurité et signalez les incivilités" />
       </Head>
       <h1>À propos de Co.Bike</h1>
