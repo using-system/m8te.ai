@@ -1,0 +1,39 @@
+name: infra-app-spoke-resources
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "infra/app-spoke-resources/**"
+      - ".github/workflows/infra-app-spoke-resources.yml"
+  pull_request:
+    paths:
+      - "infra/app-spoke-resources/**"
+      - ".github/workflows/infra-app-spoke-resources.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  terraform:
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [{ name: "dev-app" }]
+    uses: ./.github/workflows/template-terraform.yml
+    with:
+      working-dir: "infra/app-spoke-resources"
+      environment: ${{ matrix.env.name }}
+      backend-key: "app-spoke-resources"
+      vars: |
+        azure_subscription_id
+        azure_tenant_id
+      private-runner: true
+    secrets: inherit
