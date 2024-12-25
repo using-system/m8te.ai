@@ -47,7 +47,7 @@ module "gh_runner" {
     },
     {
       name  = "LABELS",
-      value = "cob,stg-infra,prd-infra,dev-app,prd-app"
+      value = var.gh_runner_labels
     },
     {
       name        = "APP_PRIVATE_KEY",

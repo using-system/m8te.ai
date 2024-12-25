@@ -30,7 +30,15 @@ variable "tags" {
 }
 
 #------------------------------------------------------------------------------
-# NETWORKING
+# Security Variables
+#------------------------------------------------------------------------------
+
+variable "admin_group_members" {
+  description = "Admin group members"
+}
+
+#------------------------------------------------------------------------------
+# NETWORKING Variables
 #------------------------------------------------------------------------------
 
 variable "vnet_address_space" {
@@ -39,16 +47,4 @@ variable "vnet_address_space" {
 
 variable "vnet_subnets" {
   description = "Subnets for the VNET"
-}
-
-#------------------------------------------------------------------------------
-# GITHUB RUNNER
-#------------------------------------------------------------------------------
-
-variable "gh_runner_app_id" {
-  description = "GitHub Runner App ID"
-}
-
-variable "gh_runner_app_private_key" {
-  description = "GitHub Runner App Private Key"
 }

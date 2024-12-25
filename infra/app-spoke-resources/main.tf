@@ -1,3 +1,7 @@
+locals {
+  k8s_namespace = "cob-${var.env}"
+}
+
 module "convention" {
   source = "../modules/az-convention"
 
@@ -11,4 +15,14 @@ resource "azurerm_resource_group" "cob" {
   name     = "${module.convention.resource_name}-app"
 
   tags = var.tags
+}
+
+resource "kubernetes_namespace" "cob" {
+  metadata {
+    name = local.k8s_namespace
+
+    labels = {
+      provisioned_by = "terraform"
+    }
+  }
 }

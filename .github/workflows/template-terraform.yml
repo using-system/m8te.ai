@@ -12,6 +12,14 @@ on:
       backend-key:
         required: true
         type: string
+      aks-cluster-name:
+        required: false
+        type: string
+        default: ""
+      aks-resource-group:
+        required: false
+        type: string
+        default: ""
       vars:
         required: false
         type: string
@@ -106,6 +114,31 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@v4
 
+      - name: Install Azure CLI
+        if: ${{ inputs.private-runner}}
+        run: |
+         curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash        
+
+      - name: "Login via Azure CLI"
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - id: kubeconfig
+        if: ${{ inputs.aks-cluster-name != '' && inputs.aks-resource-group != '' }}
+        name: "Create kubeconfig file"
+        run: |
+          az aks install-cli
+          az aks get-credentials --resource-group $AKS_RESOURCE_GROUP --name $AKS_CLUSTER_NAME --overwrite-existing
+          kubelogin convert-kubeconfig -l azurecli
+          echo "TF_VAR_aks_cluster_name=${AKS_CLUSTER_NAME}" >> $GITHUB_ENV
+          echo "TF_VAR_aks_resource_group_name=${AKS_RESOURCE_GROUP}" >> $GITHUB_ENV
+        env:
+            AKS_CLUSTER_NAME: ${{ inputs.aks-cluster-name }}
+            AKS_RESOURCE_GROUP: ${{ inputs.aks-resource-group }}          
+
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -187,6 +220,29 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
+
+      - name: Install Azure CLI
+        if: ${{ inputs.private-runner}}
+        run: |
+         curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash           
+
+      - name: "Login via Azure CLI"
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - id: kubeconfig
+        if: ${{ inputs.aks-cluster-name != '' && inputs.aks-resource-group != '' }}
+        name: "Create kubeconfig file"
+        run: |
+          az aks install-cli
+          az aks get-credentials --resource-group $AKS_RESOURCE_GROUP --name $AKS_CLUSTER_NAME --overwrite-existing
+          kubelogin convert-kubeconfig -l azurecli
+        env:
+            AKS_CLUSTER_NAME: ${{ inputs.aks-cluster-name }}
+            AKS_RESOURCE_GROUP: ${{ inputs.aks-resource-group }}          
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3

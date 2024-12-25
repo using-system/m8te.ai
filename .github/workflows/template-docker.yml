@@ -1,0 +1,63 @@
+name: Template - Docker
+
+on:
+  workflow_call:
+    inputs:
+      dockerfile:
+        required: true
+        type: string
+      working-directory:
+        required: true
+        type: string
+      image_name:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+    outputs:
+      image_name:
+        description: "Docker image name"
+        value: ${{ jobs.build-push.outputs.image_name }}
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+
+  build-push:
+    runs-on: ubuntu-24.04
+      
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Azure Container Registry
+        run: az acr login --name $IMAGE
+        env:
+          IMAGE: ${{ inputs.image_name }}
+
+      - name: Build and push Docker image
+        id: docker_build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.working-directory }}
+          file: ${{ inputs.dockerfile }}
+          push: true
+          tags: "${{ inputs.image_name }}:${{ inputs.version }}"
+
+    outputs:
+      image_name: "${{ inputs.image_name }}:${{ inputs.version }}@${{ steps.docker_build.outputs.imageid }}"

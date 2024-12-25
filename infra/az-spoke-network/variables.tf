@@ -24,10 +24,6 @@ variable "env" {
   description = "Environment name"
 }
 
-variable "admin_group_members" {
-  description = "Admin group members"
-}
-
 variable "tags" {
   description = "The default tags to associate with resources."
   type        = map(string)
@@ -43,4 +39,20 @@ variable "vnet_address_space" {
 
 variable "vnet_subnets" {
   description = "Subnets for the VNET"
+}
+
+#------------------------------------------------------------------------------
+# GITHUB RUNNER Variables
+#------------------------------------------------------------------------------
+
+variable "gh_runner_app_id" {
+  description = "GitHub Runner App ID"
+}
+
+variable "gh_runner_app_private_key" {
+  description = "GitHub Runner App Private Key"
+}
+
+variable "gh_runner_labels" {
+  description = "GitHub Runner App Private Key"
 }

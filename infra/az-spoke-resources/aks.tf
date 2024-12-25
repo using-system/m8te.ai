@@ -17,10 +17,15 @@ resource "azurerm_user_assigned_identity" "aks" {
   tags = var.tags
 }
 
+resource "azurerm_role_assignment" "aks_private_dns" {
+  scope                = data.azurerm_private_dns_zone.azmk8s.id
+  role_definition_name = "Contributor"
+  principal_id         = azurerm_user_assigned_identity.aks.principal_id
+}
 
 module "aks" {
 
-  depends_on = [azurerm_resource_group.aks]
+  depends_on = [azurerm_resource_group.aks, azurerm_role_assignment.aks_private_dns]
 
   source = "git::https://github.com/Azure/terraform-azurerm-aks.git//v4?ref=2e3c548c16a0f3e2680d5278d3738742c3702afa"
 
@@ -29,9 +34,10 @@ module "aks" {
   resource_group_name         = azurerm_resource_group.aks.name
   temporary_name_for_rotation = "poolrot"
 
-  kubernetes_version = var.aks_config.version
-  sku_tier           = "Standard"
-  vnet_subnet_id     = data.azurerm_subnet.cluster.id
+  kubernetes_version  = var.aks_config.version
+  sku_tier            = "Standard"
+  vnet_subnet_id      = data.azurerm_subnet.cluster.id
+  private_dns_zone_id = data.azurerm_private_dns_zone.azmk8s.id
 
   only_critical_addons_enabled = true
   enable_auto_scaling          = false
@@ -123,4 +129,11 @@ module "aks" {
 
   tags = var.tags
 
+}
+
+resource "azurerm_role_assignment" "aks_gtw" {
+  depends_on           = [module.aks]
+  scope                = azurerm_resource_group.app_gtw.id
+  role_definition_name = "Contributor"
+  principal_id         = module.aks.ingress_application_gateway.ingress_application_gateway_identity[0].object_id
 }

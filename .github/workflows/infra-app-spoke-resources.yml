@@ -26,12 +26,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        env: [{ name: "dev-app" }]
+        env: [
+          { name: "dev-app", infra: "stg-infra" }, 
+          { name: "prd-app", infra: "stg-infra" }
+        ]
     uses: ./.github/workflows/template-terraform.yml
     with:
       working-dir: "infra/app-spoke-resources"
       environment: ${{ matrix.env.name }}
       backend-key: "app-spoke-resources"
+      aks-cluster-name: "cob-aks"
+      aks-resource-group: "cob-${{ matrix.env.infra }}-we-aks"      
       vars: |
         azure_subscription_id
         azure_tenant_id

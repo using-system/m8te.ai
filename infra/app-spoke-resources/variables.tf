@@ -29,3 +29,32 @@ variable "tags" {
   description = "The default tags to associate with resources."
   type        = map(string)
 }
+
+
+#------------------------------------------------------------------------------
+# AKS Variables
+#------------------------------------------------------------------------------
+
+variable "aks_cluster_name" {
+  description = "The name of the AKS cluster"
+}
+
+variable "aks_resource_group_name" {
+  description = "The name of the resource group containing the AKS cluster"
+}
+
+#------------------------------------------------------------------------------
+# Deployments Variables
+#------------------------------------------------------------------------------
+
+variable "host_prefix" {
+  description = "The prefix for the hostnames"
+}
+
+variable "ui_webapp_cpu_request" {
+  description = "The CPU request for the UI webapp"
+}
+
+variable "ui_webapp_memory_request" {
+  description = "The memory request for the UI webapp"
+}
