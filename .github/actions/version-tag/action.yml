@@ -1,0 +1,38 @@
+name: 'GitVersion'
+description: 'Git version action'
+inputs:
+  prefix:
+    description: 'Prefix for the tag'
+    required: true
+  github-token:
+    description: 'GitHub token'
+    required: true
+outputs:
+  version:
+    description: "Full Sem Version"
+    value: ${{ steps.set_default_version.outputs.version }}
+runs:
+  using: "composite"
+  steps:
+    - name: Bump version and push tag
+      if: github.ref == 'refs/heads/main'
+      id: tag_version
+      uses: mathieudutour/github-tag-action@v6.2
+      with:
+        release_branches: main
+        default_bump: "patch"
+        tag_prefix: ${{ inputs.prefix }}-v
+        create_annotated_tag: true
+        github_token: ${{ inputs.github-token }}
+
+    - shell: bash
+      name: Set default version if null
+      id: set_default_version
+      run: |
+        if [ -z "${{ steps.tag_version.outputs.new_version }}" ]; then
+          echo "Setting default version to 0.1.0"
+          echo "version=0.1.0" >> $GITHUB_OUTPUT
+        else
+          echo "Setting version to ${{ steps.tag_version.outputs.new_version }}"
+          echo "version=${{ steps.tag_version.outputs.new_version }}" >> $GITHUB_OUTPUT
+        fi

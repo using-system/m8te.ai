@@ -37,7 +37,7 @@ aks_config = {
 #------------------------------------------------------------------------------
 
 app_gtw_config = {
-  sku_name     = "Basic"
-  sku_tier     = "Basic"
+  sku_name     = "Standard_v2"
+  sku_tier     = "Standard_v2"
   sku_capacity = 1
 }

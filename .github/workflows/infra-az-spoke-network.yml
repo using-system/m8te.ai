@@ -35,4 +35,6 @@ jobs:
       vars: |
         azure_subscription_id
         azure_tenant_id
+        gh_runner_app_id
+        gh_runner_app_private_key
     secrets: inherit

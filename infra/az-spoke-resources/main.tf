@@ -1,5 +1,6 @@
 locals {
-  spoke_vnet_name = "cob-spoke-vnet"
+  spoke_vnet_name  = "cob-spoke-vnet"
+  hub_vnet_rg_name = "cob-hub-infra-we-vnet"
 }
 
 module "convention" {

@@ -32,12 +32,19 @@ resource "azurerm_user_assigned_identity" "app_gtw" {
   tags = var.tags
 }
 
-
+resource "azurerm_role_assignment" "app_gtw_vault" {
+  scope                = data.azurerm_key_vault.hub.id
+  role_definition_name = "Key Vault Administrator"
+  principal_id         = azurerm_user_assigned_identity.app_gtw.principal_id
+}
 
 resource "azurerm_application_gateway" "app_gtw" {
   #checkov:skip=CKV_AZURE_120   :   Ensure that Application Gateway enables WAF 
   #checkov:skip=CKV_AZURE_218   :   Ensure Application Gateway defines secure protocols for in transit communication
   #checkov:skip=CKV_AZURE_217    :  Ensure Azure Application gateways listener that allow connection requests over HTTP
+
+  depends_on = [azurerm_private_endpoint.pep, azurerm_role_assignment.app_gtw_vault]
+
   name                = "cob-gtw"
   resource_group_name = azurerm_resource_group.app_gtw.name
   location            = var.location
@@ -64,7 +71,7 @@ resource "azurerm_application_gateway" "app_gtw" {
 
   frontend_port {
     name = local.gtw_frontend_port_name
-    port = 80
+    port = 443
   }
 
   frontend_ip_configuration {
@@ -85,11 +92,17 @@ resource "azurerm_application_gateway" "app_gtw" {
     request_timeout       = 60
   }
 
+  ssl_certificate {
+    name                = "cobike-cert"
+    key_vault_secret_id = data.azurerm_key_vault_certificate.cobike.secret_id
+  }
+
   http_listener {
     name                           = local.gtw_listener_name
     frontend_ip_configuration_name = local.gtw_frontend_ip_configuration_name
     frontend_port_name             = local.gtw_frontend_port_name
-    protocol                       = "Http"
+    protocol                       = "Https"
+    ssl_certificate_name           = "cobike-cert"
   }
 
   request_routing_rule {
@@ -109,7 +122,7 @@ resource "azurerm_application_gateway" "app_gtw" {
       http_listener,
       probe,
       request_routing_rule,
-      url_path_map,
+      url_path_map
     ]
   }
 

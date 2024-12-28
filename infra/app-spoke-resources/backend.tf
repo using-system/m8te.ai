@@ -24,6 +24,11 @@ terraform {
       version = "=3.0.2"
     }
 
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "=2.35.1"
+    }
+
     local = {
       source  = "hashicorp/local"
       version = "=2.5.2"
@@ -32,7 +37,7 @@ terraform {
 }
 
 #------------------------------------------------------------------------------
-# Configure the Microsoft Azure Provider
+# Configure the Microsoft Azure Providers
 #------------------------------------------------------------------------------
 
 provider "azurerm" {
@@ -51,4 +56,12 @@ provider "azurerm" {
 
 provider "azuread" {
   tenant_id = var.azure_tenant_id
+}
+
+#------------------------------------------------------------------------------
+# Configure the k8s Providers
+#------------------------------------------------------------------------------
+
+provider "kubernetes" {
+  config_path = "~/.kube/config"
 }

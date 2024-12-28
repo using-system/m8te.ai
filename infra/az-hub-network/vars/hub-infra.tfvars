@@ -9,7 +9,15 @@ tags = {
 }
 
 #------------------------------------------------------------------------------
-# NETWORKING
+# Security Variables
+#------------------------------------------------------------------------------
+
+admin_group_members = [
+  "9099258b-5241-4ed5-a950-e1883aad28b4"
+]
+
+#------------------------------------------------------------------------------
+# NETWORKING Variables
 #------------------------------------------------------------------------------
 
 vnet_address_space = "10.0.0.0/16"
@@ -43,7 +51,7 @@ vnet_subnets = {
   }
   "ResourcesSubnet" = {
     name              = "ResourcesSubnet"
-    service_endpoints = []
+    service_endpoints = ["Microsoft.KeyVault"]
     address_prefixes  = ["10.0.3.0/24"]
     network_rules = [
     ]

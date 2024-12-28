@@ -1,0 +1,51 @@
+name: ui-blankapp
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/ui-blankapp.yml"
+      - "src/ui/blankapp/**"
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/ui-blankapp.yml"
+      - "src/ui/blankapp/**"
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  version-tag:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version-tag.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump version and push tag
+        id: version-tag
+        uses: ./.github/actions/version-tag
+        with:
+          prefix: blankapp
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  docker:
+    needs: [version-tag]
+    uses: ./.github/workflows/template-docker.yml
+    with:
+      dockerfile: src/ui/blankapp/Dockerfile
+      working-directory: src/ui/blankapp
+      image_name: cobhubinfraweacr.azurecr.io/blankapp
+      version: ${{ needs.version-tag.outputs.version }}
+    secrets: inherit
