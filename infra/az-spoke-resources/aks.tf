@@ -54,6 +54,7 @@ module "aks" {
       enable_auto_scaling   = false
       zones                 = var.aks_config.user_default_pool_availability_zones
       vm_size               = var.aks_config.user_default_pool_vm_size
+      os_disk_size_gb       = var.aks_config.os_disk_size_gb
       priority              = "Regular"
       node_count            = var.aks_config.user_default_pool_size_count
       max_pods              = 100
@@ -67,6 +68,7 @@ module "aks" {
       enable_auto_scaling   = true
       zones                 = var.aks_config.user_spot_pool_availability_zones
       vm_size               = var.aks_config.user_spot_pool_vm_size
+      os_disk_size_gb       = var.aks_config.os_disk_size_gb
       priority              = "Spot"
       eviction_policy       = "Delete"
       min_count             = var.aks_config.user_spot_pool_size_min_count
