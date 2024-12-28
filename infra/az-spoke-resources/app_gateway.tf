@@ -122,7 +122,9 @@ resource "azurerm_application_gateway" "app_gtw" {
       http_listener,
       probe,
       request_routing_rule,
-      url_path_map
+      url_path_map,
+      frontend_port,
+      redirect_configuration
     ]
   }
 
