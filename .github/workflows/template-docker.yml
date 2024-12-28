@@ -28,6 +28,7 @@ jobs:
 
   build-push:
     runs-on: ubuntu-24.04
+    environment: build
       
     steps:
       - name: Check out the repo
