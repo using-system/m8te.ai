@@ -1,0 +1,328 @@
+﻿@font-face {
+    font-family: 'MainTitleFont';
+    font-style: normal;
+    font-weight: 400;
+    src: url('/fonts/masque.ttf') format('truetype');
+}
+
+
+body {
+    background-color: #353535;
+}
+
+.LinkBlank {
+    color: white;
+    padding-right: 15px;
+}
+
+.LinkBlank:hover {
+    color: white;
+    font-weight: bold;
+}
+
+.MainTitle {
+    text-align: center;
+}
+
+.MainTitle h1 {
+    font-size: 11vw;
+    font-family: MainTitleFont;
+    color: white;
+}
+
+.MainTitle h2 {
+    font-style: italic;
+    font-size: 2vw;
+    font-family: MainTitleFont;
+}
+
+@media(max-width : 1101px) {
+
+    .MainTitle h1 {
+        font-size: 20vw;
+        font-family: MainTitleFont;
+        color: white;
+    }
+
+    .MainTitle h2 {
+        font-size: 4vw;
+        font-family: MainTitleFont;
+    }
+}
+
+
+
+
+.container {
+    padding-top: 50px;
+    padding-bottom: 50px;
+}
+
+@media(max-width : 1999px) {
+    .container .row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+}
+
+@media(max-width : 1200px) {
+    .container .row {
+        display: block;
+    }
+}
+
+
+.container p {
+    font-size: 20px;
+    padding-bottom: 10px;
+}
+
+
+
+.section-heading {
+    margin-bottom: 60px !important;
+}
+
+.section-heading h2 {
+    font-size: 45px;
+}
+
+.section-heading p {
+    font-size: 16px !important;
+    color: gray !important;
+    text-align: center !important;
+}
+
+.section-heading hr {
+    border-top: 1px solid #000000 !important;
+    max-width: 200px !important;
+}
+
+
+
+.PhoneScreenAlign {
+    display: flex;
+    align-items: center;
+}
+
+.PhoneScreen {
+    background: linear-gradient(#229182, #99e6dc);
+}
+
+
+.phoneRender {
+    width: 50%;
+    max-width: 400px;
+}
+
+.buttonArrow:hover {
+    filter: invert(100%);
+}
+
+.buttonArrow {
+    width: 55px;
+    height: 150px;
+    border: none;
+}
+
+.buttonArrow.buttonRight {
+    background: url('/right.svg') no-repeat center center;
+}
+
+.buttonArrow.buttonLeft {
+    background: url('/left.svg') no-repeat center center;
+}
+
+.arrowRender {
+    width: auto;
+    height: auto;
+    max-width: 18%;
+}
+
+.download {
+    width: 250px;
+    height: 50px;
+    background-color: unset;
+    border: 3px dashed;
+    border-radius: 30px;
+
+}
+
+.download:hover {
+    background-color: #ffbc0aa8 !important;
+}
+
+.Changelog {
+    color: white;
+    padding-right: 20px;
+    padding-left: 20px;
+}
+
+.Privacy {
+    color: white;
+    padding-right: 20px;
+    padding-left: 20px;
+}
+
+.Terms {
+    color: white;
+    padding-right: 20px;
+    padding-left: 20px;
+}
+
+.Maps {
+    color: white;
+    padding-right: 20px;
+    padding-left: 20px;
+}
+
+.iOSBeta {
+    color: white;
+    padding-right: 20px;
+    padding-left: 20px;
+}
+
+
+.Video {
+    background: linear-gradient(#393e3e, #00ffdc);
+}
+
+
+.Video .col-lg-7 {
+    text-align: center;
+}
+
+.Video iframe {
+    box-shadow: 15px 15px 20px 10px;
+    border: 3px solid white;
+    width: 75vw;
+    height: 42.19vw;
+    max-width: 600px;
+    max-height: 337px;
+}
+
+.Video .container {
+    padding-bottom: 200px;
+}
+
+.Video .row {
+    padding-top: 40px;
+}
+
+.Video p {
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: white;
+    text-align: center;
+}
+
+.Video img {
+    border-radius: 30px;
+    margin-top: 30px;
+    width: 100%;
+    max-width: 250px;
+}
+
+.wallScreen {
+    height: 100vh;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: top center;
+}
+
+
+@media(min-width : 651px) {
+    .wallScreenImg {
+        background-image: url("/wall.jpg");
+    }
+
+    .mainTitle {
+        color: white;
+        font-size: 3vw;
+    }
+
+}
+
+@media(max-width : 650px) {
+    .wallScreenImg {
+        background-image: url("/velo.jpg");
+    }
+
+    .mainTitle {
+        color: white;
+        font-size: 5vw;
+    }
+
+}
+
+
+.mainTitle.appTitle {
+    padding-left: 30px;
+    padding-top: 30px;
+}
+
+
+.doted {
+    background: -moz-radial-gradient(grey 15%, transparent 30%), -moz-radial-gradient(grey 15%, transparent 30%), transparent;
+    background: -webkit-radial-gradient(grey 15%, transparent 30%), -webkit-radial-gradient(grey 15%, transparent 30%), transparent;
+    background-position: 0 0, 10px 10px;
+    background-size: 7px 7px;
+    height: 100vh;
+    background-color: #1f1d1d42;
+}
+
+
+
+.playstoreButton {
+    border-radius: 30px;
+    margin-top: 30px;
+    width: 100%;
+    max-width: 250px;
+}
+
+.mapsImage {
+    width: 100%;
+    max-width: 450px;
+}
+
+
+.fixed-top {
+    position: fixed;
+    top: 0px;
+    width: 100%;
+    background-color: black;
+    border-radius: 0px;
+    display: none;
+    z-index: 999;
+}
+
+.fixed-top a {
+    color: white;
+}
+
+.bottomScreen {
+    position: absolute;
+    bottom: 3%;
+}
+
+.w-100 {
+    width: 100%;
+}
+
+.center {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    height: 600px;
+    width: auto;
+}
+
+.liOk {
+    list-style-image: url("/ok.ico");
+}
+
+
+.liKo {
+    list-style-image: url("/ko.ico");
+}

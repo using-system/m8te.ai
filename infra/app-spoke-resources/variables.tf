@@ -58,3 +58,11 @@ variable "ui_webapp_cpu_request" {
 variable "ui_webapp_memory_request" {
   description = "The memory request for the UI webapp"
 }
+
+variable "ui_landingapp_cpu_request" {
+  description = "The CPU request for the UI landingapp"
+}
+
+variable "ui_landingapp_memory_request" {
+  description = "The memory request for the UI landingapp"
+}
