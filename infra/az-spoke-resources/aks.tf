@@ -69,6 +69,7 @@ module "aks" {
       zones                 = var.aks_config.user_spot_pool_availability_zones
       vm_size               = var.aks_config.user_spot_pool_vm_size
       os_disk_size_gb       = var.aks_config.os_disk_size_gb
+      os_disk_type          = "Ephemeral"
       priority              = "Spot"
       eviction_policy       = "Delete"
       min_count             = var.aks_config.user_spot_pool_size_min_count
