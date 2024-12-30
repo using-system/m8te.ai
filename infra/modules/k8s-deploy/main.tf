@@ -298,17 +298,65 @@ resource "kubernetes_ingress_v1" "this" {
         }
       }
     }
+    dynamic "rule" {
+      for_each = var.ingress_host == "www.co.bike" ? [1] : []
+      content {
+        host = "co.bike"
+        http {
+          path {
+            path      = "/*"
+            path_type = "Prefix"
+            backend {
+              service {
+                name = kubernetes_service.this.metadata[0].name
+                port {
+                  number = var.port
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+}
+
+resource "time_sleep" "wait_30_seconds" {
+  count           = var.ingress_host != "" ? 1 : 0
+  depends_on      = [kubernetes_ingress_v1.this]
+  create_duration = "30s"
+}
+
+data "kubernetes_ingress_v1" "this" {
+  count      = var.ingress_host != "" ? 1 : 0
+  depends_on = [time_sleep.wait_30_seconds]
+  metadata {
+    name      = var.name
+    namespace = var.namespace
   }
 }
 
 resource "azurerm_dns_a_record" "this" {
   count = var.ingress_host != "" ? 1 : 0
 
-  depends_on = [kubernetes_ingress_v1.this]
+  depends_on = [time_sleep.wait_30_seconds]
 
   name                = replace(var.ingress_host, ".co.bike", "")
   zone_name           = "co.bike"
   resource_group_name = "cob-hub-infra-we-dns"
   ttl                 = 300
-  records             = [kubernetes_ingress_v1.this[0].status[0].load_balancer[0].ingress[0].ip]
+  records             = [data.kubernetes_ingress_v1.this[0].status[0].load_balancer[0].ingress[0].ip]
+}
+
+resource "azurerm_dns_a_record" "this_root" {
+  count = var.ingress_host == "www.co.bike" ? 1 : 0
+
+  depends_on = [time_sleep.wait_30_seconds]
+
+  name                = "@"
+  zone_name           = "co.bike"
+  resource_group_name = "cob-hub-infra-we-dns"
+  ttl                 = 300
+  records             = [data.kubernetes_ingress_v1.this[0].status[0].load_balancer[0].ingress[0].ip]
 }
