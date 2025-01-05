@@ -1,6 +1,7 @@
 locals {
   prometheus_server_service = "prometheus-server.${kubernetes_namespace.prometheus.metadata.0.name}.svc.cluster.local"
   thanos_query_service      = "thanos-query.${kubernetes_namespace.prometheus.metadata.0.name}.svc.cluster.local"
+  thanos_store_service      = "thanos-storegateway.${kubernetes_namespace.prometheus.metadata.0.name}.svc.cluster.local"
 }
 
 resource "azurerm_resource_group" "prometheus" {
@@ -216,7 +217,7 @@ existingObjstoreSecret: "thanos-objstore-secret"
 
 query:
   enabled: true
-  replicaCount: 3
+  replicaCount: 1
   nodeSelector:
     "kubernetes.azure.com/scalesetpriority": "spot"
   tolerations:
@@ -228,10 +229,11 @@ query:
     enabled: false
   stores:
     - "dns+${local.prometheus_server_service}:10901"
+    - "dns+${local.thanos_store_service}:10901"
 
 queryFrontend:
   enabled: true
-  replicaCount: 3
+  replicaCount: 1
   nodeSelector:
     "kubernetes.azure.com/scalesetpriority": "spot"
   tolerations:
@@ -253,6 +255,7 @@ storegateway:
 
 compactor:
   enabled: true
+  replicaCount: 1
   nodeSelector:
     "kubernetes.azure.com/scalesetpriority": "spot"
   tolerations:
@@ -262,4 +265,52 @@ compactor:
       effect: "NoSchedule"
 EOF
   ]
+}
+
+resource "kubernetes_horizontal_pod_autoscaler_v2" "thanos_hpa" {
+
+  depends_on = [helm_release.thanos]
+
+  for_each = { for comp in [
+    { name = "thanos-query", kind = "Deployment" },
+    { name = "thanos-storegateway", kind = "StatefulSet" },
+    { name = "thanos-query-frontend", kind = "Deployment" }
+  ] : comp.name => comp }
+
+  metadata {
+    name      = "hpa-${each.value.name}"
+    namespace = kubernetes_namespace.prometheus.metadata[0].name
+  }
+
+  spec {
+    scale_target_ref {
+      api_version = "apps/v1"
+      kind        = each.value.kind
+      name        = each.value.name
+    }
+
+    min_replicas = 3
+    max_replicas = 8
+
+    metric {
+      type = "Resource"
+      resource {
+        name = "cpu"
+        target {
+          type                = "Utilization"
+          average_utilization = 80
+        }
+      }
+    }
+    metric {
+      type = "Resource"
+      resource {
+        name = "memory"
+        target {
+          type                = "Utilization"
+          average_utilization = 80
+        }
+      }
+    }
+  }
 }
