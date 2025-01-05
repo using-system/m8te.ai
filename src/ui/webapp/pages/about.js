@@ -10,16 +10,13 @@ export default function About() {
       </Head>
       <h1>À propos de Co.Bike</h1>
       <p>
-        <strong>Co.Bike</strong> : l'application pour rouler en sécurité et signaler les incivilités, incidents ou dangers. 
+        <strong>Co.Bike</strong> : l'application pour rouler en sécurité et signaler les incivilités, incidents ou dangers.
         <br />
         <br />
         <strong>Co</strong> pour <em>COhabitation</em>, <em>COopération</em>, <em>COmmunauté</em>.
       </p>
       <p>
         L'application est en cours de développement. Suivez son avancement sur le <a href='https://github.com/using-system/co.bike' target='_blank'>GitHub officiel co.bike</a>.
-      </p>
-      <p>
-        En mémoire à Paul Varry.
       </p>
     </Layout>
   );
