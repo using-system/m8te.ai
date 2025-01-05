@@ -3,7 +3,7 @@ export default function Footer() {
 
   return (
     <footer style={{ textAlign: 'center', padding: '10px', background: '#222', color: '#ddd', borderTop: '1px solid #444' }}>
-      <p>&copy; {currentYear} co.bike. En mémoire à Paul Varry <span style={{ color: 'red' }}>❤️</span></p>
+      <p>&copy; {currentYear} co.bike.</p>
     </footer>
   );
 }
