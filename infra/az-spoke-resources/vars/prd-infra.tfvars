@@ -31,13 +31,3 @@ aks_config = {
   services_cidr                          = "172.17.0.0/16"
   dns_service_ip                         = "172.17.0.10"
 }
-
-#------------------------------------------------------------------------------
-# Application Gateway Variables
-#------------------------------------------------------------------------------
-
-app_gtw_config = {
-  sku_name     = "Standard_v2"
-  sku_tier     = "Standard_v2"
-  sku_capacity = 2
-}

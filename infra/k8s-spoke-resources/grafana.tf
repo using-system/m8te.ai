@@ -11,6 +11,21 @@ resource "kubernetes_namespace" "grafana" {
   }
 }
 
+module "grafana_tls_csi" {
+  source = "../modules/k8s-csi-certificate"
+
+  k8s_namespace = kubernetes_namespace.grafana.metadata[0].name
+
+  workload_identity_oidc_issuer_url = data.azurerm_kubernetes_cluster.cob.oidc_issuer_url
+
+  entra_tenant_id = data.azurerm_client_config.current.tenant_id
+  keyvault_name   = data.azurerm_key_vault.hub.name
+  keyvault_id     = data.azurerm_key_vault.hub.id
+
+
+  certificate_name = "cobike"
+}
+
 resource "azuread_application" "grafana" {
   display_name = "${var.env}-grafana"
 
@@ -77,7 +92,6 @@ resource "kubernetes_secret_v1" "grafana" {
   }
 }
 
-
 resource "helm_release" "grafana" {
   depends_on = [helm_release.prometheus, kubernetes_namespace.grafana, kubernetes_secret_v1.grafana]
 
@@ -143,49 +157,24 @@ datasources:
         jsonData:
           httpMethod: GET
 
+ingress:
+  enabled: true
+  ingressClassName: traefik
+  hosts:
+    - ${local.grafana_host}
+  tls:
+    - secretName: ${module.grafana_tls_csi.k8s_secret_name}
+      hosts:
+        - ${local.grafana_host}
+
 service:
   type: ClusterIP
 EOF
   ]
 }
 
-resource "kubernetes_ingress_v1" "grafana" {
-  depends_on = [helm_release.grafana]
-
-  metadata {
-    name      = "grafana"
-    namespace = kubernetes_namespace.grafana.metadata[0].name
-    annotations = {
-      "kubernetes.io/ingress.class"                       = "azure/application-gateway"
-      "appgw.ingress.kubernetes.io/backend-path-prefix"   = "/"
-      "appgw.ingress.kubernetes.io/appgw-ssl-certificate" = "cobike-cert"
-      "appgw.ingress.kubernetes.io/ssl-redirect"          = "true"
-    }
-  }
-
-  spec {
-    rule {
-      host = local.grafana_host
-      http {
-        path {
-          path      = "/*"
-          path_type = "Prefix"
-          backend {
-            service {
-              name = "grafana"
-              port {
-                number = 80
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
 resource "time_sleep" "grafana_ingress_wait_30_seconds" {
-  depends_on      = [kubernetes_ingress_v1.grafana]
+  depends_on      = [helm_release.grafana]
   create_duration = "30s"
 }
 

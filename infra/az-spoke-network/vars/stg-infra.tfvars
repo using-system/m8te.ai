@@ -19,6 +19,17 @@ vnet_subnets = {
     service_endpoints = ["Microsoft.Storage", "Microsoft.KeyVault", "Microsoft.ContainerRegistry"]
     address_prefixes  = ["192.168.0.0/20"]
     network_rules = [
+      {
+        name                       = "AllowAnyHTTPSInbound"
+        priority                   = 1001
+        direction                  = "Inbound"
+        access                     = "Allow"
+        protocol                   = "Tcp"
+        source_address_prefix      = "*"
+        source_port_range          = "*"
+        destination_address_prefix = "*"
+        destination_port_range     = "443"
+      }
     ]
     routes = [
     ]

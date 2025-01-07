@@ -8,13 +8,8 @@ variable "namespace" {
   type        = string
 }
 
-variable "aks_cluster_name" {
-  description = "The name of the AKS cluster"
-  type        = string
-}
-
-variable "aks_resource_group_name" {
-  description = "The name of the resource group containing the AKS cluster"
+variable "workload_identity_oidc_issuer_url" {
+  description = "The OIDC issuer URL of the workload identity"
   type        = string
 }
 
@@ -118,5 +113,10 @@ variable "health_probe_path" {
 
 variable "ingress_host" {
   description = "The host for the ingress"
+  type        = string
+}
+
+variable "ingress_tls_secret_name" {
+  description = "The name of the secret for the ingress TLS"
   type        = string
 }
