@@ -47,6 +47,10 @@ module "aks" {
   agents_max_pods              = 100
   agents_pool_name             = "systempool"
 
+  key_vault_secrets_provider_enabled = true
+  secret_rotation_enabled            = true
+  secret_rotation_interval           = "2m"
+
   node_pools = {
     "UserDefaultPool" = {
       name                  = "default"
@@ -109,11 +113,6 @@ module "aks" {
     cob = data.azurerm_container_registry.hub.id
   }
 
-  brown_field_application_gateway_for_ingress = {
-    id        = azurerm_application_gateway.app_gtw.id
-    subnet_id = data.azurerm_subnet.app_gtw.id
-  }
-
   maintenance_window = {
     allowed = [
       {
@@ -132,11 +131,4 @@ module "aks" {
 
   tags = var.tags
 
-}
-
-resource "azurerm_role_assignment" "aks_gtw" {
-  depends_on           = [module.aks]
-  scope                = azurerm_resource_group.app_gtw.id
-  role_definition_name = "Contributor"
-  principal_id         = module.aks.ingress_application_gateway.ingress_application_gateway_identity[0].object_id
 }

@@ -36,11 +36,3 @@ variable "tags" {
 variable "aks_config" {
   description = "AKS Configuration"
 }
-
-#------------------------------------------------------------------------------
-# Application Gateway Variables
-#------------------------------------------------------------------------------
-
-variable "app_gtw_config" {
-  description = "Application Gateway Configuration"
-}

@@ -44,8 +44,3 @@ data "azurerm_key_vault" "hub" {
   name                = "cob-hub-infra-we"
   resource_group_name = "cob-hub-infra-we-vault"
 }
-
-data "azurerm_key_vault_certificate" "cobike" {
-  name         = "cobike"
-  key_vault_id = data.azurerm_key_vault.hub.id
-}

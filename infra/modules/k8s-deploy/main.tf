@@ -38,14 +38,14 @@ resource "azuread_application_federated_identity_credential" "this" {
   display_name   = "${var.namespace}-${var.name}-credential"
 
   audiences = ["api://AzureADTokenExchange"]
-  issuer    = data.azurerm_kubernetes_cluster.aks.oidc_issuer_url
+  issuer    = var.workload_identity_oidc_issuer_url
   subject   = "system:serviceaccount:${var.namespace}:${local.service_account_name}"
 }
 
 resource "azurerm_role_assignment" "this" {
   count = length(var.role_assignments)
 
-  principal_id         = azuread_service_principal.this.id
+  principal_id         = azuread_service_principal.this.object_id
   role_definition_name = var.role_assignments[count.index].role_name
   scope                = var.role_assignments[count.index].scope_id
 }
@@ -268,24 +268,22 @@ resource "kubernetes_ingress_v1" "this" {
     name      = var.name
     namespace = var.namespace
     annotations = {
-      "kubernetes.io/ingress.class"                                  = "azure/application-gateway"
-      "appgw.ingress.kubernetes.io/backend-path-prefix"              = "/"
-      "appgw.ingress.kubernetes.io/health-probe-path"                = var.health_probe_path
-      "appgw.ingress.kubernetes.io/health-probe-port"                = var.port
-      "appgw.ingress.kubernetes.io/health-probe-interval"            = "10"
-      "appgw.ingress.kubernetes.io/health-probe-timeout"             = "5"
-      "appgw.ingress.kubernetes.io/health-probe-unhealthy-threshold" = "3"
-      "appgw.ingress.kubernetes.io/appgw-ssl-certificate"            = "cobike-cert"
-      "appgw.ingress.kubernetes.io/ssl-redirect"                     = "true"
+      "kubernetes.io/ingress.class" = "traefik"
     }
   }
 
   spec {
+
+    tls {
+      hosts       = var.ingress_host == "www.co.bike" ? ["co.bike", var.ingress_host] : [var.ingress_host]
+      secret_name = var.ingress_tls_secret_name
+    }
+
     rule {
       host = var.ingress_host
       http {
         path {
-          path      = "/*"
+          path      = "/"
           path_type = "Prefix"
           backend {
             service {
@@ -304,7 +302,7 @@ resource "kubernetes_ingress_v1" "this" {
         host = "co.bike"
         http {
           path {
-            path      = "/*"
+            path      = "/"
             path_type = "Prefix"
             backend {
               service {
