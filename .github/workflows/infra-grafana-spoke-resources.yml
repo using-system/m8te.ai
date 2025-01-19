@@ -1,0 +1,41 @@
+name: infra-grafana-spoke-resources
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "infra/grafana-spoke-resources/**"
+      - ".github/workflows/infra-grafana-spoke-resources.yml"
+  pull_request:
+    paths:
+      - "infra/k8s-spoke-resources/**"
+      - ".github/workflows/infra-grafana-spoke-resources.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  terraform:
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [{ name: "stg-infra" }]
+    uses: ./.github/workflows/template-terraform.yml
+    with:
+      working-dir: "infra/grafana-spoke-resources"
+      environment: ${{ matrix.env.name }}
+      backend-key: "grafana-spoke-resources"    
+      vars: |
+        azure_subscription_id
+        azure_tenant_id
+        grafana_uri
+        grafana_auth
+      private-runner: false
+    secrets: inherit
