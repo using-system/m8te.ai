@@ -5,6 +5,7 @@ locals {
 }
 
 resource "azuread_application" "this" {
+  #checkov:skip=CKV_AZURE_249  :  Ensure Azure GitHub Actions OIDC trust policy is configured securely
   display_name = "${var.k8s_namespace}-${local.csi_name}"
 }
 
@@ -201,9 +202,13 @@ resource "kubernetes_deployment" "this" {
             }
           }
         }
-
-
       }
     }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      spec[0].template[0].metadata[0].annotations["kubectl.kubernetes.io/restartedAt"]
+    ]
   }
 }

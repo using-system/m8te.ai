@@ -115,8 +115,3 @@ variable "ingress_host" {
   description = "The host for the ingress"
   type        = string
 }
-
-variable "ingress_tls_secret_name" {
-  description = "The name of the secret for the ingress TLS"
-  type        = string
-}

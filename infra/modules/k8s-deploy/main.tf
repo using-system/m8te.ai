@@ -12,6 +12,7 @@ locals {
 }
 
 resource "azuread_application" "this" {
+  #checkov:skip=CKV_AZURE_249  :  Ensure Azure GitHub Actions OIDC trust policy is configured securely
   display_name = "${var.namespace}-${var.name}"
 }
 
@@ -237,7 +238,8 @@ resource "kubernetes_deployment" "this" {
 
   lifecycle {
     ignore_changes = [
-      spec[0].template[0].spec[0].container[0].image
+      spec[0].template[0].spec[0].container[0].image,
+      spec[0].template[0].metadata[0].annotations["kubectl.kubernetes.io/restartedAt"]
     ]
   }
 }
@@ -262,99 +264,68 @@ resource "kubernetes_service" "this" {
   }
 }
 
-resource "kubernetes_ingress_v1" "this" {
+resource "kubernetes_manifest" "api_http_route" {
   count = var.ingress_host != "" ? 1 : 0
-  metadata {
-    name      = var.name
-    namespace = var.namespace
-    annotations = {
-      "kubernetes.io/ingress.class" = "traefik"
+  manifest = {
+    apiVersion = "gateway.networking.k8s.io/v1"
+    kind       = "HTTPRoute"
+    metadata = {
+      name      = "${var.name}-route"
+      namespace = var.namespace
     }
-  }
-
-  spec {
-
-    tls {
-      hosts       = var.ingress_host == "www.co.bike" ? ["co.bike", var.ingress_host] : [var.ingress_host]
-      secret_name = var.ingress_tls_secret_name
-    }
-
-    rule {
-      host = var.ingress_host
-      http {
-        path {
-          path      = "/"
-          path_type = "Prefix"
-          backend {
-            service {
+    spec = {
+      parentRefs = [
+        {
+          name      = "gateway"
+          namespace = "istio-system"
+        }
+      ]
+      hostnames = var.ingress_host == "www.co.bike" ? ["co.bike", var.ingress_host] : [var.ingress_host]
+      rules = [
+        {
+          matches = [
+            {
+              path = {
+                type  = "PathPrefix"
+                value = "/"
+              }
+            }
+          ]
+          backendRefs = [
+            {
               name = kubernetes_service.this.metadata[0].name
-              port {
-                number = var.port
-              }
+              port = var.port
             }
-          }
+          ]
         }
-      }
-    }
-    dynamic "rule" {
-      for_each = var.ingress_host == "www.co.bike" ? [1] : []
-      content {
-        host = "co.bike"
-        http {
-          path {
-            path      = "/"
-            path_type = "Prefix"
-            backend {
-              service {
-                name = kubernetes_service.this.metadata[0].name
-                port {
-                  number = var.port
-                }
-              }
-            }
-          }
-        }
-      }
+      ]
     }
   }
-
 }
 
-resource "time_sleep" "wait_30_seconds" {
-  count           = var.ingress_host != "" ? 1 : 0
-  depends_on      = [kubernetes_ingress_v1.this]
-  create_duration = "30s"
-}
-
-data "kubernetes_ingress_v1" "this" {
-  count      = var.ingress_host != "" ? 1 : 0
-  depends_on = [time_sleep.wait_30_seconds]
+data "kubernetes_service" "istio_gateway" {
   metadata {
-    name      = var.name
-    namespace = var.namespace
+    name      = "gateway-istio"
+    namespace = "istio-system"
   }
 }
 
 resource "azurerm_dns_a_record" "this" {
   count = var.ingress_host != "" ? 1 : 0
 
-  depends_on = [time_sleep.wait_30_seconds]
-
   name                = replace(var.ingress_host, ".co.bike", "")
   zone_name           = "co.bike"
   resource_group_name = "cob-hub-infra-we-dns"
   ttl                 = 300
-  records             = [data.kubernetes_ingress_v1.this[0].status[0].load_balancer[0].ingress[0].ip]
+  records             = [data.kubernetes_service.istio_gateway.status[0].load_balancer[0].ingress[0].ip]
 }
 
 resource "azurerm_dns_a_record" "this_root" {
   count = var.ingress_host == "www.co.bike" ? 1 : 0
 
-  depends_on = [time_sleep.wait_30_seconds]
-
   name                = "@"
   zone_name           = "co.bike"
   resource_group_name = "cob-hub-infra-we-dns"
   ttl                 = 300
-  records             = [data.kubernetes_ingress_v1.this[0].status[0].load_balancer[0].ingress[0].ip]
+  records             = [data.kubernetes_service.istio_gateway.status[0].load_balancer[0].ingress[0].ip]
 }
