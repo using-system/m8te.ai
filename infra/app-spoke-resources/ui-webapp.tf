@@ -15,6 +15,5 @@ module "ui_webapp" {
     memory = var.ui_webapp_memory_request
   }
 
-  ingress_host            = "${var.host_prefix}app.co.bike"
-  ingress_tls_secret_name = module.cob_tls_csi.k8s_secret_name
+  ingress_host = "${var.host_prefix}app.co.bike"
 }

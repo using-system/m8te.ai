@@ -14,6 +14,28 @@ resource "azurerm_resource_group" "prometheus" {
 resource "kubernetes_namespace" "prometheus" {
   metadata {
     name = "prometheus"
+
+    labels = {
+      istio-injection = "enabled"
+      provisioned_by  = "terraform"
+    }
+  }
+
+}
+
+resource "kubernetes_manifest" "prometheus_peer_authentication" {
+  manifest = {
+    apiVersion = "security.istio.io/v1beta1"
+    kind       = "PeerAuthentication"
+    metadata = {
+      name      = "default"
+      namespace = kubernetes_namespace.prometheus.metadata[0].name
+    }
+    spec = {
+      mtls = {
+        mode = "STRICT"
+      }
+    }
   }
 }
 

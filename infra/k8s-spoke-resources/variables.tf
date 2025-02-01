@@ -84,3 +84,27 @@ variable "grafana_helmchart_version" {
   description = "Grafana Helm Chart Version"
   default     = "8.8.2"
 }
+
+#------------------------------------------------------------------------------
+# Istio Variables
+#------------------------------------------------------------------------------
+
+variable "gateway_api_helmchart_version" {
+  description = "Gateway API Helm Chart Version"
+  default     = "2024.8.30"
+}
+
+variable "istio_base_helmchart_version" {
+  description = "Istio Base Helm Chart Version"
+  default     = "1.24.2"
+}
+
+variable "istio_system_helmchart_version" {
+  description = "Istio System Helm Chart Version"
+  default     = "1.24.2"
+}
+
+variable "istio_gateway_helmchart_version" {
+  description = "Istio Gateway Helm Chart Version"
+  default     = "1.24.2"
+}

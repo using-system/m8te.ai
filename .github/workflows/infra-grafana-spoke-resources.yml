@@ -9,7 +9,7 @@ on:
       - ".github/workflows/infra-grafana-spoke-resources.yml"
   pull_request:
     paths:
-      - "infra/k8s-spoke-resources/**"
+      - "infra/grafana-spoke-resources/**"
       - ".github/workflows/infra-grafana-spoke-resources.yml"
   workflow_dispatch:
 

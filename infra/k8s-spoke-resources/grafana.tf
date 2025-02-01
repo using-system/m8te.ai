@@ -8,25 +8,33 @@ locals {
 resource "kubernetes_namespace" "grafana" {
   metadata {
     name = "grafana"
+
+    labels = {
+      istio-injection = "enabled"
+      provisioned_by  = "terraform"
+    }
   }
 }
 
-module "grafana_tls_csi" {
-  source = "../modules/k8s-csi-certificate"
-
-  k8s_namespace = kubernetes_namespace.grafana.metadata[0].name
-
-  workload_identity_oidc_issuer_url = data.azurerm_kubernetes_cluster.cob.oidc_issuer_url
-
-  entra_tenant_id = data.azurerm_client_config.current.tenant_id
-  keyvault_name   = data.azurerm_key_vault.hub.name
-  keyvault_id     = data.azurerm_key_vault.hub.id
-
-
-  certificate_name = "cobike"
+resource "kubernetes_manifest" "grafana_peer_authentication" {
+  manifest = {
+    apiVersion = "security.istio.io/v1beta1"
+    kind       = "PeerAuthentication"
+    metadata = {
+      name      = "default"
+      namespace = kubernetes_namespace.grafana.metadata[0].name
+    }
+    spec = {
+      mtls = {
+        mode = "STRICT"
+      }
+    }
+  }
 }
 
+
 resource "azuread_application" "grafana" {
+  #checkov:skip=CKV_AZURE_249  :  Ensure Azure GitHub Actions OIDC trust policy is configured securely
   display_name = "${var.env}-grafana"
 
   web {
@@ -157,42 +165,64 @@ datasources:
         jsonData:
           httpMethod: GET
 
-ingress:
-  enabled: true
-  ingressClassName: traefik
-  hosts:
-    - ${local.grafana_host}
-  tls:
-    - secretName: ${module.grafana_tls_csi.k8s_secret_name}
-      hosts:
-        - ${local.grafana_host}
-
 service:
   type: ClusterIP
 EOF
   ]
 }
 
-resource "time_sleep" "grafana_ingress_wait_30_seconds" {
-  depends_on      = [helm_release.grafana]
-  create_duration = "30s"
+resource "kubernetes_manifest" "grafana_http_route" {
+  manifest = {
+    apiVersion = "gateway.networking.k8s.io/v1"
+    kind       = "HTTPRoute"
+    metadata = {
+      name      = "grafana-route"
+      namespace = kubernetes_namespace.grafana.metadata[0].name
+    }
+    spec = {
+      parentRefs = [
+        {
+          name      = "gateway"
+          namespace = kubernetes_namespace.istio.metadata[0].name
+        }
+      ]
+      hostnames = [local.grafana_host]
+      rules = [
+        {
+          matches = [
+            {
+              path = {
+                type  = "PathPrefix"
+                value = "/"
+              }
+            }
+          ]
+          backendRefs = [
+            {
+              name = helm_release.grafana.metadata[0].name
+              port = 80
+            }
+          ]
+        }
+      ]
+    }
+  }
 }
 
-data "kubernetes_ingress_v1" "grafana" {
-  depends_on = [time_sleep.grafana_ingress_wait_30_seconds]
+data "kubernetes_service" "istio_gateway" {
+
+  depends_on = [kubernetes_manifest.istio_api_gateway]
   metadata {
-    name      = "grafana"
-    namespace = "grafana"
+    name      = "gateway-istio"
+    namespace = "istio-system"
   }
 }
 
 resource "azurerm_dns_a_record" "grafana" {
 
-  depends_on = [time_sleep.grafana_ingress_wait_30_seconds]
-
   name                = "${var.ingress_prefix}grafana"
   zone_name           = "co.bike"
   resource_group_name = "cob-hub-infra-we-dns"
   ttl                 = 300
-  records             = [data.kubernetes_ingress_v1.grafana.status[0].load_balancer[0].ingress[0].ip]
+  records             = [data.kubernetes_service.istio_gateway.status[0].load_balancer[0].ingress[0].ip]
 }
