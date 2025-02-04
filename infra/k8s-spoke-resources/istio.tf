@@ -63,7 +63,6 @@ EOF
   ]
 }
 
-
 resource "kubernetes_manifest" "istio_api_gateway" {
   depends_on = [module.istio_tls_csi, helm_release.istio_system]
   manifest = {
@@ -82,27 +81,6 @@ resource "kubernetes_manifest" "istio_api_gateway" {
         {
           name     = "default"
           protocol = "HTTPS"
-          hostname = "*.co.bike"
-          port     = 443
-          tls = {
-            mode = "Terminate"
-            certificateRefs = [
-              {
-                namespace = kubernetes_namespace.istio.metadata[0].name
-                name      = module.istio_tls_csi.k8s_secret_name
-              }
-            ]
-          }
-          allowedRoutes = {
-            namespaces = {
-              from = "All"
-            }
-          }
-        },
-        {
-          name     = "apex"
-          protocol = "HTTPS"
-          hostname = "co.bike"
           port     = 443
           tls = {
             mode = "Terminate"

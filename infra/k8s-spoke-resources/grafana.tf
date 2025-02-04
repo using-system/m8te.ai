@@ -182,8 +182,9 @@ resource "kubernetes_manifest" "grafana_http_route" {
     spec = {
       parentRefs = [
         {
-          name      = "gateway"
-          namespace = kubernetes_namespace.istio.metadata[0].name
+          name        = "gateway"
+          namespace   = kubernetes_namespace.istio.metadata[0].name
+          sectionName = "default"
         }
       ]
       hostnames = [local.grafana_host]
