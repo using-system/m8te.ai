@@ -276,8 +276,9 @@ resource "kubernetes_manifest" "api_http_route" {
     spec = {
       parentRefs = [
         {
-          name      = "gateway"
-          namespace = "istio-system"
+          name        = "gateway"
+          namespace   = "istio-system"
+          sectionName = "default"
         }
       ]
       hostnames = var.ingress_host == "www.co.bike" ? ["co.bike", var.ingress_host] : [var.ingress_host]
