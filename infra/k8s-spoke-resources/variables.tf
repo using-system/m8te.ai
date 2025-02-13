@@ -51,18 +51,7 @@ variable "ingress_prefix" {
 
 
 #------------------------------------------------------------------------------
-# Networking Variables
-#------------------------------------------------------------------------------
-
-variable "traefik_helmchart_version" {
-  description = "Traefik Helm Chart Version"
-  default     = "v33.2.1"
-
-}
-
-
-#------------------------------------------------------------------------------
-# Monitoring Variables
+# Helm Chart Variables
 #------------------------------------------------------------------------------
 
 variable "prometheus_helmchart_version" {
@@ -85,9 +74,10 @@ variable "grafana_helmchart_version" {
   default     = "8.8.2"
 }
 
-#------------------------------------------------------------------------------
-# Istio Variables
-#------------------------------------------------------------------------------
+variable "otel_collector_helmchart_version" {
+  description = "OpenTelemetry Collector Helm Chart Version"
+  default     = "0.116.0"
+}
 
 variable "gateway_api_helmchart_version" {
   description = "Gateway API Helm Chart Version"
