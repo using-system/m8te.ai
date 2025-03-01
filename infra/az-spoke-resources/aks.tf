@@ -34,10 +34,11 @@ module "aks" {
   resource_group_name         = azurerm_resource_group.aks.name
   temporary_name_for_rotation = "poolrot"
 
-  kubernetes_version  = var.aks_config.version
-  sku_tier            = "Standard"
-  vnet_subnet_id      = data.azurerm_subnet.cluster.id
-  private_dns_zone_id = data.azurerm_private_dns_zone.azmk8s.id
+  kubernetes_version   = var.aks_config.control_plane_version
+  orchestrator_version = var.aks_config.system_pool_orchestrator_version
+  sku_tier             = "Standard"
+  vnet_subnet_id       = data.azurerm_subnet.cluster.id
+  private_dns_zone_id  = data.azurerm_private_dns_zone.azmk8s.id
 
   only_critical_addons_enabled = true
   enable_auto_scaling          = false

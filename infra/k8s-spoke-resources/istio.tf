@@ -58,7 +58,7 @@ tolerations:
     effect: "NoSchedule"
 autoscaleEnabled: true
 autoscaleMin: 2
-autoscaleMax: 5
+autoscaleMax: 6
 EOF
   ]
 }
