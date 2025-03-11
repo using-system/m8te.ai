@@ -183,6 +183,10 @@ resource "helm_release" "prometheus" {
   values = [
     <<EOF
 server:
+  resources:
+    limits:
+      cpu: "2"
+      memory: "6Gi"
   global:
     external_labels:
       cluster: main
