@@ -51,7 +51,7 @@ jobs:
       run: |
         if [ "$PRIVATE_RUNNER" == "true" ]; then
           echo "Using custom configuration"
-          labels=$(echo "\"${ENVIRONMENT}\", \"cob\"")
+          labels=$(echo "\"${ENVIRONMENT}\", \"m8t\"")
           runner_desc=$(echo "{\"labels\":[$labels]}") 
           config=$(echo $runner_desc | jq -c '.')
           echo "runner-config=$config"

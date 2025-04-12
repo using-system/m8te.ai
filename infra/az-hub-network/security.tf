@@ -1,5 +1,5 @@
 resource "azuread_group" "admin" {
-  display_name     = "COB_ADMIN"
+  display_name     = "${upper(module.convention.project)}_ADMIN"
   owners           = [data.azurerm_client_config.current.object_id]
   security_enabled = true
 

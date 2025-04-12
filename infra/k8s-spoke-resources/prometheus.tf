@@ -172,7 +172,10 @@ resource "azurerm_role_assignment" "prometheus_thanos_objstore" {
 
 resource "helm_release" "prometheus" {
 
-  depends_on = [kubernetes_secret.prometheus_thanos_objstore, azurerm_role_assignment.prometheus_thanos_objstore]
+  depends_on = [
+    kubernetes_secret.prometheus_thanos_objstore,
+    azurerm_role_assignment.prometheus_thanos_objstore
+  ]
 
   name       = "prometheus"
   namespace  = kubernetes_namespace.prometheus.metadata[0].name

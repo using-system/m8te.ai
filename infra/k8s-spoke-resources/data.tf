@@ -3,7 +3,7 @@ data "azurerm_client_config" "current" {
 }
 
 data "azuread_group" "admin_group" {
-  display_name     = "COB_ADMIN"
+  display_name     = "${upper(var.project_name)}_ADMIN"
   security_enabled = true
 }
 
@@ -30,6 +30,6 @@ data "azurerm_user_assigned_identity" "aks" {
 }
 
 data "azurerm_key_vault" "hub" {
-  name                = "cob-hub-infra-we"
-  resource_group_name = "cob-hub-infra-we-vault"
+  name                = "${var.project_name}-hub-infra-we"
+  resource_group_name = "${var.project_name}-hub-infra-we-vault"
 }

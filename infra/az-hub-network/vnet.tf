@@ -11,7 +11,7 @@ module "vnet" {
 
   location            = var.location
   resource_group_name = azurerm_resource_group.vnet.name
-  vnet_name           = "cob-hub-vnet"
+  vnet_name           = "${var.project_name}-hub-vnet"
   vnet_address_space  = var.vnet_address_space
   vnet_subnets        = var.vnet_subnets
   tags                = var.tags

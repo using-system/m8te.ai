@@ -1,16 +1,16 @@
-name: infra-k8s-spoke-resources
+name: infra-k8s-gtw-api
 
 on:
   push:
     branches:
       - main
     paths:
-      - "infra/k8s-spoke-resources/**"
-      - ".github/workflows/infra-k8s-spoke-resources.yml"
+      - "infra/k8s-gtw-api/**"
+      - ".github/workflows/infra-k8s-gtw-api.yml"
   pull_request:
     paths:
-      - "infra/k8s-spoke-resources/**"
-      - ".github/workflows/infra-k8s-spoke-resources.yml"
+      - "infra/k8s-gtw-api/**"
+      - ".github/workflows/infra-k8s-gtw-api.yml"
   workflow_dispatch:
 
 concurrency:
@@ -29,9 +29,9 @@ jobs:
         env: [{ name: "stg-infra" }]
     uses: ./.github/workflows/template-terraform.yml
     with:
-      working-dir: "infra/k8s-spoke-resources"
+      working-dir: "infra/k8s-gtw-api"
       environment: ${{ matrix.env.name }}
-      backend-key: "k8s-spoke-resources"
+      backend-key: "k8s-gtw-api"
       aks-cluster-name: "m8t-aks"
       aks-resource-group: "m8t-${{ matrix.env.name }}-we-aks"      
       vars: |

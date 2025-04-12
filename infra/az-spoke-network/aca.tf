@@ -7,7 +7,7 @@ resource "azurerm_resource_group" "aca" {
 
 resource "azurerm_container_app_environment" "aca" {
   location                 = var.location
-  name                     = "cob-aca-env"
+  name                     = "${var.project_name}-aca-env"
   resource_group_name      = azurerm_resource_group.aca.name
   infrastructure_subnet_id = module.vnet.subnet_ids["AcaSubnet"]
 }

@@ -31,7 +31,7 @@ module "gh_runner" {
     },
     {
       name  = "REPO_URL",
-      value = "https://github.com/using-system/co.bike"
+      value = "https://github.com/using-system/m8te.ai"
     },
     {
       name  = "DISABLE_AUTO_UPDATE",
