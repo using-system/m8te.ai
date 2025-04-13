@@ -3,7 +3,7 @@
 #------------------------------------------------------------------------------
 
 tags = {
-  project       = "cob"
+  project       = "m8t"
   env           = "prd-infra"
   provisionedby = "terraform"
 }
@@ -111,4 +111,4 @@ vnet_subnets = {
 # GITHUB RUNNER Variables
 #------------------------------------------------------------------------------
 
-gh_runner_labels = "cob,prd-infra,dev-app,prd-app"
+gh_runner_labels = "m8t,prd-infra,dev-app,prd-app"

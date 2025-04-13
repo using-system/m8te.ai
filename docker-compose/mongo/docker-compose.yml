@@ -5,13 +5,13 @@ services:
     image: mongo:latest
     container_name: mongodb
     environment:
-      MONGO_INITDB_DATABASE: COB  # nom de la base de données
-      MONGO_INITDB_ROOT_USERNAME: admin  # utilisateur admin
-      MONGO_INITDB_ROOT_PASSWORD: password  # mot de passe de l'utilisateur admin
+      MONGO_INITDB_DATABASE: M8T
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
     ports:
-      - "27017:27017"  # expose le port 27017 pour MongoDB
+      - "27017:27017"
     volumes:
-      - mongo_data:/data/db  # monte un volume pour la persistance des données
+      - mongo_data:/data/db
     networks:
       - mongo_network
 
@@ -22,17 +22,17 @@ services:
       ME_CONFIG_MONGODB_ADMINUSERNAME: admin
       ME_CONFIG_MONGODB_ADMINPASSWORD: password
       ME_CONFIG_MONGODB_SERVER: mongodb
-      ME_CONFIG_BASICAUTH_USERNAME: admin  # Identifiant pour Mongo Express
-      ME_CONFIG_BASICAUTH_PASSWORD: password  # Mot de passe pour Mongo Express
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: password
     ports:
-      - "8081:8081"  # expose le port pour l'interface Mongo Express
+      - "8081:8081"
     depends_on:
       - mongodb
     networks:
       - mongo_network
 
 volumes:
-  mongo_data:  # définition du volume pour MongoDB
+  mongo_data:
 
 networks:
-  mongo_network:  # réseau pour que les services communiquent entre eux
+  mongo_network:

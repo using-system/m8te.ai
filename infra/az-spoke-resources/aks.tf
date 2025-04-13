@@ -27,9 +27,9 @@ module "aks" {
 
   depends_on = [azurerm_resource_group.aks, azurerm_role_assignment.aks_private_dns]
 
-  source = "git::https://github.com/Azure/terraform-azurerm-aks.git//v4?ref=2e3c548c16a0f3e2680d5278d3738742c3702afa"
+  source = "git::https://github.com/Azure/terraform-azurerm-aks.git//v4?ref=90389ee19431741fb83e4919c9cbdd4dbf0a9b46" # v 9.4.1
 
-  cluster_name                = "cob-aks"
+  cluster_name                = "${var.project_name}-aks"
   prefix                      = random_id.aks_prefix.hex
   resource_group_name         = azurerm_resource_group.aks.name
   temporary_name_for_rotation = "poolrot"

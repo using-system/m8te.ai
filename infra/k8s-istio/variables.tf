@@ -29,33 +29,45 @@ variable "project_name" {
   default     = "m8t"
 }
 
+variable "dns_zone_name" {
+  description = "DNS Zone Name"
+  default     = "m8te.ai"
+}
+
 variable "tags" {
   description = "The default tags to associate with resources."
   type        = map(string)
 }
 
 #------------------------------------------------------------------------------
-# Security Variables
+# AKS Variables
 #------------------------------------------------------------------------------
 
-variable "admin_group_members" {
-  description = "Admin group members"
+variable "aks_cluster_name" {
+  description = "The name of the AKS cluster"
 }
+
+variable "aks_resource_group_name" {
+  description = "The name of the resource group containing the AKS cluster"
+}
+
 
 #------------------------------------------------------------------------------
-# NETWORKING Variables
+# Helm Chart Variables
 #------------------------------------------------------------------------------
 
-variable "vnet_address_space" {
-  description = "Address space for the VNET"
+
+variable "istio_base_helmchart_version" {
+  description = "Istio Base Helm Chart Version"
+  default     = "1.24.2"
 }
 
-variable "vnet_subnets" {
-  description = "Subnets for the VNET"
+variable "istio_system_helmchart_version" {
+  description = "Istio System Helm Chart Version"
+  default     = "1.24.2"
 }
 
-variable "dns_zone_name" {
-  description = "DNS zone name"
-  default     = "m8te.ai"
-
+variable "istio_gateway_helmchart_version" {
+  description = "Istio Gateway Helm Chart Version"
+  default     = "1.24.2"
 }

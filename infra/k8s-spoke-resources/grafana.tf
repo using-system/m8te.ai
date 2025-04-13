@@ -1,5 +1,5 @@
 locals {
-  grafana_host           = "${var.ingress_prefix}grafana.co.bike"
+  grafana_host           = "${var.ingress_prefix}grafana.${var.dns_zone_name}"
   grafana_admin_role_id  = "96258afe-9d90-4d61-905d-94c66707c669"
   grafana_editor_role_id = "3a7eea70-7d6c-4bed-8dad-3d6a1ae6c537"
   grafana_viewer_role_id = "32e68c0e-7dbc-4ee1-bac1-016e218ed69c"
@@ -17,6 +17,7 @@ resource "kubernetes_namespace" "grafana" {
 }
 
 resource "kubernetes_manifest" "grafana_peer_authentication" {
+
   manifest = {
     apiVersion = "security.istio.io/v1beta1"
     kind       = "PeerAuthentication"
@@ -183,7 +184,7 @@ resource "kubernetes_manifest" "grafana_http_route" {
       parentRefs = [
         {
           name        = "gateway"
-          namespace   = kubernetes_namespace.istio.metadata[0].name
+          namespace   = "istio-system"
           sectionName = "default"
         }
       ]
@@ -212,7 +213,6 @@ resource "kubernetes_manifest" "grafana_http_route" {
 
 data "kubernetes_service" "istio_gateway" {
 
-  depends_on = [kubernetes_manifest.istio_api_gateway]
   metadata {
     name      = "gateway-istio"
     namespace = "istio-system"
@@ -222,8 +222,8 @@ data "kubernetes_service" "istio_gateway" {
 resource "azurerm_dns_a_record" "grafana" {
 
   name                = "${var.ingress_prefix}grafana"
-  zone_name           = "co.bike"
-  resource_group_name = "cob-hub-infra-we-dns"
+  zone_name           = var.dns_zone_name
+  resource_group_name = "${var.project_name}-hub-infra-we-dns"
   ttl                 = 300
   records             = [data.kubernetes_service.istio_gateway.status[0].load_balancer[0].ingress[0].ip]
 }

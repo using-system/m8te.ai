@@ -29,33 +29,34 @@ variable "project_name" {
   default     = "m8t"
 }
 
+variable "dns_zone_name" {
+  description = "DNS Zone Name"
+  default     = "m8te.ai"
+}
+
 variable "tags" {
   description = "The default tags to associate with resources."
   type        = map(string)
 }
 
 #------------------------------------------------------------------------------
-# Security Variables
+# AKS Variables
 #------------------------------------------------------------------------------
 
-variable "admin_group_members" {
-  description = "Admin group members"
+variable "aks_cluster_name" {
+  description = "The name of the AKS cluster"
 }
+
+variable "aks_resource_group_name" {
+  description = "The name of the resource group containing the AKS cluster"
+}
+
 
 #------------------------------------------------------------------------------
-# NETWORKING Variables
+# Helm Chart Variables
 #------------------------------------------------------------------------------
 
-variable "vnet_address_space" {
-  description = "Address space for the VNET"
-}
-
-variable "vnet_subnets" {
-  description = "Subnets for the VNET"
-}
-
-variable "dns_zone_name" {
-  description = "DNS zone name"
-  default     = "m8te.ai"
-
+variable "gateway_api_helmchart_version" {
+  description = "Gateway API Helm Chart Version"
+  default     = "2024.8.30"
 }

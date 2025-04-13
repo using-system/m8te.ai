@@ -24,6 +24,16 @@ variable "env" {
   description = "Environment name"
 }
 
+variable "project_name" {
+  description = "Project name"
+  default     = "m8t"
+}
+
+variable "dns_zone_name" {
+  description = "DNS Zone Name"
+  default     = "m8te.ai"
+}
+
 variable "tags" {
   description = "The default tags to associate with resources."
   type        = map(string)
@@ -77,24 +87,4 @@ variable "grafana_helmchart_version" {
 variable "otel_collector_helmchart_version" {
   description = "OpenTelemetry Collector Helm Chart Version"
   default     = "0.116.0"
-}
-
-variable "gateway_api_helmchart_version" {
-  description = "Gateway API Helm Chart Version"
-  default     = "2024.8.30"
-}
-
-variable "istio_base_helmchart_version" {
-  description = "Istio Base Helm Chart Version"
-  default     = "1.24.2"
-}
-
-variable "istio_system_helmchart_version" {
-  description = "Istio System Helm Chart Version"
-  default     = "1.24.2"
-}
-
-variable "istio_gateway_helmchart_version" {
-  description = "Istio Gateway Helm Chart Version"
-  default     = "1.24.2"
 }
