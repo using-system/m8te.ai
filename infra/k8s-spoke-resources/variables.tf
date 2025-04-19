@@ -88,3 +88,8 @@ variable "otel_collector_helmchart_version" {
   description = "OpenTelemetry Collector Helm Chart Version"
   default     = "0.116.0"
 }
+
+variable "kubecost_helmchart_version" {
+  description = "Kubecost Helm Chart Version"
+  default     = "2.7.1"
+}

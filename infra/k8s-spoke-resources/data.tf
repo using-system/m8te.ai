@@ -33,3 +33,11 @@ data "azurerm_key_vault" "hub" {
   name                = "${var.project_name}-hub-infra-we"
   resource_group_name = "${var.project_name}-hub-infra-we-vault"
 }
+
+data "kubernetes_service" "istio_gateway" {
+
+  metadata {
+    name      = "gateway-istio"
+    namespace = "istio-system"
+  }
+}
