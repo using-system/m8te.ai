@@ -84,7 +84,8 @@ variable "grafana_helmchart_version" {
   default     = "8.8.2"
 }
 
-variable "otel_collector_helmchart_version" {
-  description = "OpenTelemetry Collector Helm Chart Version"
-  default     = "0.116.0"
+variable "vpa_image" {
+  description = "VPA Image"
+  default     = "registry.k8s.io/autoscaling/vpa-recommender:1.3.0"
+
 }

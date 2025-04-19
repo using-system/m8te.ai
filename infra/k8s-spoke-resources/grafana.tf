@@ -102,7 +102,13 @@ resource "kubernetes_secret_v1" "grafana" {
 }
 
 resource "helm_release" "grafana" {
-  depends_on = [helm_release.prometheus, kubernetes_namespace.grafana, kubernetes_secret_v1.grafana]
+
+  depends_on = [
+    helm_release.prometheus,
+    kubernetes_namespace.grafana,
+    kubernetes_manifest.grafana_peer_authentication,
+    kubernetes_secret_v1.grafana
+  ]
 
   name       = "grafana"
   namespace  = kubernetes_namespace.grafana.metadata[0].name
@@ -173,6 +179,7 @@ EOF
 }
 
 resource "kubernetes_manifest" "grafana_http_route" {
+  depends_on = [helm_release.grafana]
   manifest = {
     apiVersion = "gateway.networking.k8s.io/v1"
     kind       = "HTTPRoute"
@@ -208,14 +215,6 @@ resource "kubernetes_manifest" "grafana_http_route" {
         }
       ]
     }
-  }
-}
-
-data "kubernetes_service" "istio_gateway" {
-
-  metadata {
-    name      = "gateway-istio"
-    namespace = "istio-system"
   }
 }
 

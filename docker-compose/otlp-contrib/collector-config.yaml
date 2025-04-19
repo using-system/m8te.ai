@@ -1,0 +1,21 @@
+receivers:
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: "kubecost"
+          metrics_path: /metrics
+          static_configs:
+            - targets:
+                ["kubecost-cost-analyzer.kubecost.svc.cluster.local:9090"]
+
+processors:
+  batch: {}
+
+exporters:
+  debug:
+service:
+  pipelines:
+    metrics:
+      receivers: [prometheus]
+      processors: [batch]
+      exporters: [debug]

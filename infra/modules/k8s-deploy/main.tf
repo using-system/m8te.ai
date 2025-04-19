@@ -244,6 +244,32 @@ resource "kubernetes_deployment" "this" {
   }
 }
 
+resource "kubernetes_manifest" "vpa" {
+
+  depends_on = [kubernetes_deployment.this]
+
+  manifest = yamldecode(<<YAML
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: ${var.name}-vpa
+  namespace: ${var.namespace}
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ${var.name}
+  updatePolicy:
+    updateMode: "Off"
+YAML
+  )
+  lifecycle {
+    ignore_changes = [
+      manifest[0].status,
+    ]
+  }
+}
+
 resource "kubernetes_service" "this" {
   metadata {
     name      = var.name

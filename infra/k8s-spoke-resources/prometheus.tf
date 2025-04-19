@@ -204,7 +204,8 @@ server:
     enabled: true
     size: 30Gi
     storageClass: "managed-premium"
-
+  extraFlags:
+    - web.enable-remote-write-receiver
   extraArgs:
     storage.tsdb.min-block-duration: "2h"
     storage.tsdb.max-block-duration: "2h"
