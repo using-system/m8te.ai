@@ -14,8 +14,8 @@ module "gh_runner" {
   image        = "myoung34/github-runner:latest"
   cpu          = 0.5
   memory       = "1Gi"
-  min_replicas = 2
-  max_replicas = 2
+  min_replicas = 4
+  max_replicas = 4
 
   secrets = [
     {
