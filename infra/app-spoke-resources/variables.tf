@@ -62,18 +62,22 @@ variable "host_prefix" {
   description = "The prefix for the hostnames"
 }
 
-variable "ui_webapp_cpu_request" {
-  description = "The CPU request for the UI webapp"
+variable "default_cpu_request" {
+  description = "The CPU request for an app"
+  default     = "100m"
 }
 
-variable "ui_webapp_memory_request" {
-  description = "The memory request for the UI webapp"
+variable "default_memory_request" {
+  description = "The memory request for an app"
+  default     = "128Mi"
 }
 
-variable "ui_landingapp_cpu_request" {
-  description = "The CPU request for the UI landingapp"
+variable "default_cpu_limit" {
+  description = "The CPU limit for an app"
+  default     = "300m"
 }
 
-variable "ui_landingapp_memory_request" {
-  description = "The memory request for the UI landingapp"
+variable "default_memory_limit" {
+  description = "values for memory limit"
+  default     = "384Mi"
 }

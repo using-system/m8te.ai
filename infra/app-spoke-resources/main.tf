@@ -1,5 +1,6 @@
 locals {
-  k8s_namespace = "${var.project_name}-${var.env}"
+  prometheus_server_service = "prometheus-server.prometheus.svc.cluster.local"
+  k8s_namespace             = "${var.project_name}-${var.env}"
 }
 
 module "convention" {
