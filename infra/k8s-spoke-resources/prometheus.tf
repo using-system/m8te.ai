@@ -204,7 +204,8 @@ server:
     enabled: true
     size: 30Gi
     storageClass: "managed-premium"
-
+  extraFlags:
+    - web.enable-remote-write-receiver
   extraArgs:
     storage.tsdb.min-block-duration: "2h"
     storage.tsdb.max-block-duration: "2h"
@@ -246,8 +247,82 @@ server:
       servicePort: 10901
 
 alertmanager:
+
+  nodeSelector:
+    "kubernetes.azure.com/scalesetpriority": "spot"
+  tolerations:
+    - key: "kubernetes.azure.com/scalesetpriority"
+      operator: "Equal"
+      value: "spot"
+      effect: "NoSchedule"
+      
   persistence:
     size: 2Gi
+
+kube-state-metrics:
+  enabled: true
+
+  nodeSelector:
+    "kubernetes.azure.com/scalesetpriority": "spot"
+  tolerations:
+    - key: "kubernetes.azure.com/scalesetpriority"
+      operator: "Equal"
+      value: "spot"
+      effect: "NoSchedule"
+
+  rbac:
+    extraRules:
+      - apiGroups: ["autoscaling.k8s.io"]
+        resources: ["verticalpodautoscalers"]
+        verbs: ["list", "watch"]
+
+  prometheus:
+    monitor:
+      enabled: true
+
+  customResourceState:
+    enabled: true
+    config:
+      kind: CustomResourceStateMetrics
+      spec:
+        resources:
+          - groupVersionKind:
+              group: autoscaling.k8s.io
+              kind: "VerticalPodAutoscaler"
+              version: "v1"
+            labelsFromPath:
+              verticalpodautoscaler: [metadata, name]
+              namespace: [metadata, namespace]
+              target_api_version: [apiVersion]
+              target_kind: [spec, targetRef, kind]
+              target_name: [spec, targetRef, name]
+            metrics:
+              - name: "vpa_containerrecommendations_target"
+                help: "VPA container recommendations for memory."
+                each:
+                  type: Gauge
+                  gauge:
+                    path: [status, recommendation, containerRecommendations]
+                    valueFrom: [target, memory]
+                    labelsFromPath:
+                      container: [containerName]
+                commonLabels:
+                  resource: "memory"
+                  unit: "byte"
+              - name: "vpa_containerrecommendations_target"
+                help: "VPA container recommendations for cpu."
+                each:
+                  type: Gauge
+                  gauge:
+                    path: [status, recommendation, containerRecommendations]
+                    valueFrom: [target, cpu]
+                    labelsFromPath:
+                      container: [containerName]
+                commonLabels:
+                  resource: "cpu"
+                  unit: "core"
+  selfMonitor:
+    enabled: true
 EOF
   ]
 }

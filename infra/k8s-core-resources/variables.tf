@@ -60,3 +60,23 @@ variable "gateway_api_helmchart_version" {
   description = "Gateway API Helm Chart Version"
   default     = "2024.8.30"
 }
+
+variable "cert_manager_helmchart_version" {
+  description = "Cert Manager Helm Chart Version"
+  default     = "v1.17.1"
+}
+
+variable "otlp_operator_helmchart_version" {
+  description = "OpenTelemetry Operator Helm Chart Version"
+  default     = "0.86.2"
+}
+
+variable "vpa_helmchart_version" {
+  description = "Vertical Pod Autoscaler Helm Chart Version"
+  default     = "10.0.0"
+}
+
+variable "prometheus_operator_crds_helmchart_version" {
+  description = "Prometheus Operator CRDs Helm Chart Version"
+  default     = "19.1.0"
+}

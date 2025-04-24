@@ -67,7 +67,7 @@ resource "kubernetes_deployment" "this" {
   }
 
   spec {
-    replicas = var.replicas
+    replicas = var.min_replicas
 
     strategy {
       type = var.strategy
@@ -93,6 +93,9 @@ resource "kubernetes_deployment" "this" {
           app                           = var.name
           "azure.workload.identity/use" = "true"
           provisioned_by                = "terraform"
+        }
+        annotations = {
+          "sidecar.opentelemetry.io/inject" : "${var.inject_otlp}"
         }
       }
 
@@ -238,8 +241,99 @@ resource "kubernetes_deployment" "this" {
 
   lifecycle {
     ignore_changes = [
+      spec[0].replicas,
       spec[0].template[0].spec[0].container[0].image,
       spec[0].template[0].metadata[0].annotations["kubectl.kubernetes.io/restartedAt"]
+    ]
+  }
+}
+
+resource "kubernetes_horizontal_pod_autoscaler_v2" "this" {
+
+  depends_on = [kubernetes_deployment.this]
+
+  metadata {
+    name      = "${var.name}-hpa"
+    namespace = var.namespace
+  }
+  spec {
+    scale_target_ref {
+      api_version = "apps/v1"
+      kind        = "Deployment"
+      name        = var.name
+    }
+    min_replicas = var.min_replicas
+    max_replicas = var.max_replicas
+    metric {
+      type = "Resource"
+      resource {
+        name = "cpu"
+        target {
+          type                = "Utilization"
+          average_utilization = 80
+        }
+      }
+    }
+    metric {
+      type = "Resource"
+      resource {
+        name = "memory"
+        target {
+          type                = "Utilization"
+          average_utilization = 80
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_pod_disruption_budget_v1" "this" {
+  depends_on = [
+    kubernetes_deployment.this
+  ]
+
+  metadata {
+    name      = "${var.name}-pdb"
+    namespace = var.namespace
+    labels = {
+      provisioned_by = "terraform"
+    }
+  }
+
+  spec {
+    min_available = 1
+
+    selector {
+      match_labels = {
+        app = var.name
+      }
+    }
+  }
+}
+
+
+resource "kubernetes_manifest" "vpa" {
+
+  depends_on = [kubernetes_deployment.this]
+
+  manifest = yamldecode(<<YAML
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: ${var.name}-vpa
+  namespace: ${var.namespace}
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ${var.name}
+  updatePolicy:
+    updateMode: "Off"
+YAML
+  )
+  lifecycle {
+    ignore_changes = [
+      manifest[0].status,
     ]
   }
 }

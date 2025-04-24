@@ -13,12 +13,6 @@ variable "workload_identity_oidc_issuer_url" {
   type        = string
 }
 
-variable "replicas" {
-  description = "The number of replicas"
-  type        = number
-  default     = 2
-}
-
 variable "strategy" {
   description = "The deployment strategy"
   type        = string
@@ -79,10 +73,6 @@ variable "environment" {
 variable "resource_limits" {
   description = "Resource limits for the container"
   type        = map(string)
-  default = {
-    cpu    = "500m"
-    memory = "2048Mi"
-  }
 }
 
 variable "resource_requests" {
@@ -114,4 +104,22 @@ variable "health_probe_path" {
 variable "ingress_host" {
   description = "The host for the ingress"
   type        = string
+}
+
+variable "inject_otlp" {
+  description = "Flag to inject OpenTelemetry"
+  type        = bool
+  default     = true
+}
+
+variable "min_replicas" {
+  description = "Minimum number of replicas for the deployment"
+  type        = number
+  default     = 2
+}
+
+variable "max_replicas" {
+  description = "Maximum number of replicas for the deployment"
+  type        = number
+  default     = 8
 }
