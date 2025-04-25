@@ -123,6 +123,9 @@ resource "kubernetes_deployment" "this" {
           name  = var.name
           image = var.default_image
 
+          command = var.command
+          args    = var.args
+
           resources {
             limits   = var.resource_limits
             requests = var.resource_requests
@@ -175,6 +178,13 @@ resource "kubernetes_deployment" "this" {
               }
             }
 
+            dynamic "exec" {
+              for_each = var.health_probe_transport_mode == "exec" ? [1] : []
+              content {
+                command = var.health_probe_exec_command
+              }
+            }
+
             initial_delay_seconds = 15
             period_seconds        = 30
             failure_threshold     = 3
@@ -197,6 +207,13 @@ resource "kubernetes_deployment" "this" {
               }
             }
 
+            dynamic "exec" {
+              for_each = var.health_probe_transport_mode == "exec" ? [1] : []
+              content {
+                command = var.health_probe_exec_command
+              }
+            }
+
             initial_delay_seconds = 15
             period_seconds        = 10
             failure_threshold     = 3
@@ -216,6 +233,13 @@ resource "kubernetes_deployment" "this" {
               content {
                 path = var.health_probe_path
                 port = var.port
+              }
+            }
+
+            dynamic "exec" {
+              for_each = var.health_probe_transport_mode == "exec" ? [1] : []
+              content {
+                command = var.health_probe_exec_command
               }
             }
 

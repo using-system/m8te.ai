@@ -1,7 +1,8 @@
 locals {
-  prometheus_server_service = "prometheus-server.${kubernetes_namespace.prometheus.metadata.0.name}.svc.cluster.local"
-  thanos_query_service      = "thanos-query.${kubernetes_namespace.prometheus.metadata.0.name}.svc.cluster.local"
-  thanos_store_service      = "thanos-storegateway.${kubernetes_namespace.prometheus.metadata.0.name}.svc.cluster.local"
+  prometheus_server_service        = "prometheus-server.${kubernetes_namespace.prometheus.metadata.0.name}.svc.cluster.local"
+  prometheus_alert_manager_service = "prometheus-alertmanager.${kubernetes_namespace.prometheus.metadata.0.name}.svc.cluster.local"
+  thanos_query_service             = "thanos-query.${kubernetes_namespace.prometheus.metadata.0.name}.svc.cluster.local"
+  thanos_store_service             = "thanos-storegateway.${kubernetes_namespace.prometheus.metadata.0.name}.svc.cluster.local"
 }
 
 resource "azurerm_resource_group" "prometheus" {
@@ -204,8 +205,10 @@ server:
     enabled: true
     size: 30Gi
     storageClass: "managed-premium"
+  retention: "12h"
   extraFlags:
     - web.enable-remote-write-receiver
+    - web.enable-lifecycle
   extraArgs:
     storage.tsdb.min-block-duration: "2h"
     storage.tsdb.max-block-duration: "2h"

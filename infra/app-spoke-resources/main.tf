@@ -1,5 +1,6 @@
 locals {
   prometheus_server_service = "prometheus-server.prometheus.svc.cluster.local"
+  loki_gateway_service      = "loki-gateway.loki.svc.cluster.local"
   k8s_namespace             = "${var.project_name}-${var.env}"
 }
 
