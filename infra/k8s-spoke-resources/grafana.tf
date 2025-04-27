@@ -105,6 +105,7 @@ resource "helm_release" "grafana" {
 
   depends_on = [
     helm_release.prometheus,
+    helm_release.loki,
     kubernetes_namespace.grafana,
     kubernetes_manifest.grafana_peer_authentication,
     kubernetes_secret_v1.grafana
@@ -171,6 +172,15 @@ datasources:
         isDefault: true
         jsonData:
           httpMethod: GET
+      - name: Loki
+        type: loki
+        access: proxy
+        url: "http://${local.loki_gateway_service}"
+        jsonData:
+          httpMethod: GET
+          httpHeaderName1: X-Scope-OrgID  
+        secureJsonData:
+          httpHeaderValue1: default
 
 service:
   type: ClusterIP

@@ -81,3 +81,4 @@ variable "default_memory_limit" {
   description = "values for memory limit"
   default     = "384Mi"
 }
+

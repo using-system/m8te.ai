@@ -81,7 +81,17 @@ variable "thanos_sidecar_image" {
 
 variable "grafana_helmchart_version" {
   description = "Grafana Helm Chart Version"
-  default     = "8.8.2"
+  default     = "8.13.1"
+}
+
+variable "loki_helmchart_version" {
+  description = "Loki Helm Chart Version"
+  default     = "6.29.0"
+}
+
+variable "promtail_helmchart_version" {
+  description = "Promtail Helm Chart Version"
+  default     = "6.16.6"
 }
 
 variable "vpa_image" {

@@ -22,18 +22,36 @@ spec:
           grpc: {}
     processors:
       batch: {}
+      k8sattributes:
+        auth_type: "serviceAccount"
+        passthrough: false
+        extract:
+          metadata:
+            - k8s.namespace.name
+            - k8s.pod.name
+            - k8s.pod.uid
+            - k8s.node.name
+            - k8s.deployment.name
+            - k8s.pod.start_time
     exporters:
       prometheusremotewrite:
         endpoint: "http://${local.prometheus_server_service}/api/v1/write"
+      otlphttp/loki:
+        endpoint: "http://${local.loki_gateway_service}:3100/otlp"
+        tls:
+          insecure: true
+        headers:
+          X-Scope-OrgID: "default"
     service:
       pipelines:
         metrics:
-          receivers:
-            - otlp
-          processors:
-            - batch
-          exporters:
-            - prometheusremotewrite
+          receivers: [otlp]
+          processors: [batch, k8sattributes]
+          exporters: [prometheusremotewrite]
+        logs:
+          receivers: [otlp]
+          processors: [batch, k8sattributes]
+          exporters: [otlphttp/loki]
 YAML
 
   ignore_fields = [

@@ -31,6 +31,18 @@ variable "default_image" {
   default     = "m8thubinfraweacr.azurecr.io/blankapp:0.1.0@sha256:319589057dfd597a11344d4649342b275fbc2935b1dc75a1d6be90f9b377ea15"
 }
 
+variable "command" {
+  description = "The command to run in the container"
+  type        = list(string)
+  default     = []
+}
+
+variable "args" {
+  description = "The arguments to pass to the command"
+  type        = list(string)
+  default     = []
+}
+
 variable "volume_claims" {
   description = "List of volume claims and mount paths."
   type = list(object({
@@ -101,9 +113,15 @@ variable "health_probe_path" {
   default     = "/health"
 }
 
+variable "health_probe_exec_command" {
+  description = "The command to execute"
+  default     = ["echo", "ok"]
+}
+
 variable "ingress_host" {
   description = "The host for the ingress"
   type        = string
+  default     = ""
 }
 
 variable "inject_otlp" {

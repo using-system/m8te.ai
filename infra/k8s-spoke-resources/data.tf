@@ -13,7 +13,7 @@ data "azurerm_subnet" "resources" {
   resource_group_name  = "${module.convention.resource_name}-vnet"
 }
 
-data "azurerm_kubernetes_cluster" "cob" {
+data "azurerm_kubernetes_cluster" "m8t" {
   name                = var.aks_cluster_name
   resource_group_name = var.aks_resource_group_name
 }
