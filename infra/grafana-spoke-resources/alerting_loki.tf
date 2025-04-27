@@ -64,7 +64,188 @@ resource "grafana_rule_group" "loki" {
   }
 
   rule {
-    name      = "HighErrorLogVolume"
+    name      = "LokiIngestionThroughputDrop"
+    condition = "Condition"
+    for       = "0s"
+
+    data {
+      ref_id = "IngestRate"
+      relative_time_range {
+        from = 300
+        to   = 0
+      }
+      datasource_uid = data.grafana_data_source.prometheus.uid
+      model = jsonencode({
+        expr = "sum(rate(loki_distributor_bytes_received_total[5m])) by (instance)"
+      })
+    }
+
+    data {
+      ref_id = "ReduceIngestRate"
+      relative_time_range {
+        from = 0
+        to   = 0
+      }
+      datasource_uid = "__expr__"
+      model = jsonencode({
+        expression = "IngestRate"
+        type       = "reduce"
+        reducer    = "last"
+      })
+    }
+
+    data {
+      ref_id = "Condition"
+      relative_time_range {
+        from = 0
+        to   = 0
+      }
+      datasource_uid = "__expr__"
+      model = jsonencode({
+        type       = "math"
+        expression = "$ReduceIngestRate < 100000" # ~0,29 MiB/s
+      })
+    }
+
+    annotations = {
+      summary     = "Drop in ingestion throughput on {{ $labels.instance }}"
+      description = "The ingestion byte rate on instance {{ $labels.instance }} has fallen below 1 MiB/s over the last 5 minutes."
+    }
+
+    labels = {
+      severity = "warning"
+    }
+
+    notification_settings {
+      contact_point = "default"
+      group_by      = ["instance"]
+      mute_timings  = []
+    }
+  }
+
+  rule {
+    name      = "LokiHighQueryLatency"
+    condition = "Condition"
+    for       = "0s"
+
+    data {
+      ref_id = "P99Latency"
+      relative_time_range {
+        from = 300
+        to   = 0
+      }
+      datasource_uid = data.grafana_data_source.prometheus.uid
+      model = jsonencode({
+        expr = "histogram_quantile(0.99, sum(rate(loki_request_duration_seconds_bucket[5m])) by (le, job))"
+      })
+    }
+
+    data {
+      ref_id = "ReduceP99"
+      relative_time_range {
+        from = 0
+        to   = 0
+      }
+      datasource_uid = "__expr__"
+      model = jsonencode({
+        expression = "P99Latency"
+        type       = "reduce"
+        reducer    = "last"
+      })
+    }
+
+    data {
+      ref_id = "Condition"
+      relative_time_range {
+        from = 0
+        to   = 0
+      }
+      datasource_uid = "__expr__"
+      model = jsonencode({
+        type       = "math"
+        expression = "$ReduceP99 > 1"
+      })
+    }
+
+    annotations = {
+      summary     = "High query latency (>1s) on {{ $labels.job }}"
+      description = "The 99th percentile of request latency for job {{ $labels.job }} has exceeded 1 second over the last 5 minutes."
+    }
+
+    labels = {
+      severity = "critical"
+    }
+
+    notification_settings {
+      contact_point = "default"
+      group_by      = ["job"]
+      mute_timings  = []
+    }
+  }
+
+  rule {
+    name      = "LokiIngesterMemoryHigh"
+    condition = "Condition"
+    for       = "0s"
+
+    data {
+      ref_id = "MemoryBytes"
+      relative_time_range {
+        from = 300 # last 5m
+        to   = 0
+      }
+      datasource_uid = data.grafana_data_source.prometheus.uid
+      model = jsonencode({
+        expr = "sum(container_memory_working_set_bytes{namespace=\"loki\",pod=~\"loki-ingester-.*\"}) by (pod)"
+      })
+    }
+
+    data {
+      ref_id = "ReduceMemory"
+      relative_time_range {
+        from = 0
+        to   = 0
+      }
+      datasource_uid = "__expr__"
+      model = jsonencode({
+        expression = "MemoryBytes"
+        type       = "reduce"
+        reducer    = "last"
+      })
+    }
+
+    #Fire if any ingester pod is over 4 GiB
+    data {
+      ref_id = "Condition"
+      relative_time_range {
+        from = 0
+        to   = 0
+      }
+      datasource_uid = "__expr__"
+      model = jsonencode({
+        type       = "math"
+        expression = "$ReduceMemory > 4e9"
+      })
+    }
+
+    annotations = {
+      summary     = "High memory usage on ingester pod {{ $labels.pod }}"
+      description = "In the last 5 minutes, ingester pod {{ $labels.pod }} has a working-set memory > 4 GiB, which may indicate excessive chunk buildup or memory leak."
+    }
+
+    labels = {
+      severity = "warning"
+    }
+
+    notification_settings {
+      contact_point = "default"
+      group_by      = ["pod"]
+      mute_timings  = []
+    }
+  }
+
+  rule {
+    name      = "LokiHighErrorLogVolume"
     condition = "Condition"
     for       = "0s"
 
@@ -109,7 +290,7 @@ resource "grafana_rule_group" "loki" {
 
     annotations = {
       summary     = "High ERROR log volume for {{ $labels.app }} in {{ $labels.namespace }}"
-      description = "More than 50 ERROR-level log entries were generated in the last hour by application {{ $labels.app }} in namespace {{ $labels.namespace }}."
+      description = "More than 250 ERROR-level log entries were generated in the last hour by application {{ $labels.app }} in namespace {{ $labels.namespace }}."
     }
 
     labels = {
@@ -122,5 +303,6 @@ resource "grafana_rule_group" "loki" {
       mute_timings  = []
     }
   }
+
 
 }
