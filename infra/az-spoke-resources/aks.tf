@@ -54,16 +54,21 @@ module "aks" {
 
   node_pools = {
     "UserDefaultPool" = {
-      name                  = "default"
-      orchestrator_version  = var.aks_config.user_default_pool_orchestrator_version
-      enable_auto_scaling   = false
-      zones                 = var.aks_config.user_default_pool_availability_zones
-      vm_size               = var.aks_config.user_default_pool_vm_size
-      os_disk_size_gb       = var.aks_config.os_disk_size_gb
-      priority              = "Regular"
-      node_count            = var.aks_config.user_default_pool_size_count
-      max_pods              = 100
-      vnet_subnet_id        = data.azurerm_subnet.cluster.id
+      name                 = "default"
+      orchestrator_version = var.aks_config.user_default_pool_orchestrator_version
+      enable_auto_scaling  = false
+      zones                = var.aks_config.user_default_pool_availability_zones
+      vm_size              = var.aks_config.user_default_pool_vm_size
+      os_disk_size_gb      = var.aks_config.os_disk_size_gb
+      priority             = "Regular"
+      node_count           = var.aks_config.user_default_pool_size_count
+      max_pods             = 100
+      vnet_subnet_id       = data.azurerm_subnet.cluster.id
+      upgrade_settings = {
+        max_surge                     = "10%"
+        drain_timeout_in_minutes      = 0
+        node_soak_duration_in_minutes = 0
+      }
       create_before_destroy = true
     }
     "UserSpotPool" = {
@@ -111,7 +116,7 @@ module "aks" {
   os_disk_size_gb            = var.aks_config.os_disk_size_gb
 
   attached_acr_id_map = {
-    cob = data.azurerm_container_registry.hub.id
+    m8t = data.azurerm_container_registry.hub.id
   }
 
   maintenance_window = {

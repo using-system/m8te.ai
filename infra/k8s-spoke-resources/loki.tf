@@ -4,6 +4,10 @@ locals {
   loki_storage_ruler_container_name = "loki-ruler"
   loki_canary_service               = "loki-canary.${kubernetes_namespace.loki.metadata.0.name}.svc.cluster.local"
   loki_gateway_service              = "loki-gateway.${kubernetes_namespace.loki.metadata.0.name}.svc.cluster.local"
+  loki_distributor_service          = "loki-distributor.${kubernetes_namespace.loki.metadata.0.name}.svc.cluster.local"
+  loki_ingester_service             = "loki-ingester.${kubernetes_namespace.loki.metadata.0.name}.svc.cluster.local"
+  loki_query_frontend_service       = "loki-query-frontend.${kubernetes_namespace.loki.metadata.0.name}.svc.cluster.local"
+  loki_querier_service              = "loki-querier.${kubernetes_namespace.loki.metadata.0.name}.svc.cluster.local"
 }
 
 resource "azurerm_resource_group" "loki" {
@@ -40,6 +44,8 @@ resource "kubernetes_manifest" "loki_peer_authentication" {
     }
   }
 }
+
+
 
 resource "azuread_application" "loki" {
   #checkov:skip=CKV_AZURE_249  :  Ensure Azure GitHub Actions OIDC trust policy is configured securely
@@ -156,10 +162,10 @@ resource "helm_release" "loki" {
   depends_on = [
     helm_release.prometheus,
     kubernetes_namespace.loki,
-    kubernetes_manifest.loki_peer_authentication,
     azurerm_storage_container.loki_chunk,
     azurerm_storage_container.loki_ruler,
     azurerm_role_assignment.loki_storage,
+    kubernetes_manifest.loki_peer_authentication
   ]
 
   name       = "loki"
@@ -332,13 +338,6 @@ lokiCanary:
   enabled: true
   push: true
 
-  extraArgs:
-    - "-interval=60s"
-    - "-spot-check-interval=1h"
-    - "-spot-check-query-rate=15m"
-    - "-metric-test-interval=1h"
-    - "-metric-test-range=2h"
-
   nodeSelector:
     kubernetes.azure.com/scalesetpriority: spot
   tolerations:
@@ -432,8 +431,10 @@ EOF
 }
 
 resource "kubectl_manifest" "loki_otlp" {
-
-  depends_on = [helm_release.loki]
+  depends_on = [
+    helm_release.loki,
+    kubernetes_manifest.loki_peer_authentication
+  ]
 
   yaml_body = <<YAML
 apiVersion: opentelemetry.io/v1beta1
@@ -443,6 +444,7 @@ metadata:
   namespace: ${kubernetes_namespace.loki.metadata[0].name}
 spec:
   mode: deployment
+        
   resources:
     requests:
       cpu: "50m"
@@ -459,7 +461,37 @@ spec:
               scrape_interval: 30s
               metrics_path: /metrics
               static_configs:
-                - targets: ["${local.loki_canary_service}:3500"]
+                - targets:
+                    - "${local.loki_canary_service}:3500"
+
+            - job_name: "loki-distributor"
+              scrape_interval: 30s
+              metrics_path: /metrics
+              static_configs:
+                - targets:
+                    - "${local.loki_distributor_service}:3100"
+
+            - job_name: "loki-ingester"
+              scrape_interval: 30s
+              metrics_path: /metrics
+              static_configs:
+                - targets:
+                    - "${local.loki_ingester_service}:3100"
+
+            - job_name: "loki-querier"
+              scrape_interval: 30s
+              metrics_path: /metrics
+              static_configs:
+                - targets:
+                    - "${local.loki_querier_service}:3100"
+
+            - job_name: "loki-query-frontend"
+              scrape_interval: 30s
+              metrics_path: /metrics
+              static_configs:
+                - targets:
+                    - "${local.loki_query_frontend_service}:3100"
+
     processors:
       batch: {}
     exporters:
@@ -481,3 +513,4 @@ YAML
     "spec",
   ]
 }
+

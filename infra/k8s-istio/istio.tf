@@ -12,7 +12,7 @@ module "istio_tls_csi" {
 
   k8s_namespace = kubernetes_namespace.istio.metadata[0].name
 
-  workload_identity_oidc_issuer_url = data.azurerm_kubernetes_cluster.cob.oidc_issuer_url
+  workload_identity_oidc_issuer_url = data.azurerm_kubernetes_cluster.m8t.oidc_issuer_url
 
   entra_tenant_id = data.azurerm_client_config.current.tenant_id
   keyvault_name   = data.azurerm_key_vault.hub.name

@@ -9,7 +9,7 @@ module "ui_landingapp" {
 
   name                              = "landingapp"
   namespace                         = local.k8s_namespace
-  workload_identity_oidc_issuer_url = data.azurerm_kubernetes_cluster.cob.oidc_issuer_url
+  workload_identity_oidc_issuer_url = data.azurerm_kubernetes_cluster.m8t.oidc_issuer_url
   environment                       = var.env
 
   resource_requests = {
