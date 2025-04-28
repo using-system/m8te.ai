@@ -8,6 +8,8 @@ module "ui_landingapp" {
   source = "../modules/k8s-deploy"
 
   name                              = "landingapp"
+  env                               = var.env
+  project_name                      = var.project_name
   namespace                         = local.k8s_namespace
   workload_identity_oidc_issuer_url = data.azurerm_kubernetes_cluster.m8t.oidc_issuer_url
   environment                       = var.env

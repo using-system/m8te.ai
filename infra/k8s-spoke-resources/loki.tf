@@ -45,8 +45,6 @@ resource "kubernetes_manifest" "loki_peer_authentication" {
   }
 }
 
-
-
 resource "azuread_application" "loki" {
   #checkov:skip=CKV_AZURE_249  :  Ensure Azure GitHub Actions OIDC trust policy is configured securely
   display_name = "${var.env}-loki"
@@ -56,7 +54,7 @@ resource "azuread_service_principal" "loki" {
   client_id = azuread_application.loki.client_id
 }
 
-resource "azuread_application_federated_identity_credential" "this" {
+resource "azuread_application_federated_identity_credential" "loki" {
   application_id = azuread_application.loki.id
   display_name   = "${var.env}-loki-credential"
 

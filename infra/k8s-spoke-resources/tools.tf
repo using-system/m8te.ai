@@ -36,6 +36,8 @@ module "curl" {
   source = "../modules/k8s-deploy"
 
   name                              = "curl"
+  env                               = var.env
+  project_name                      = var.project_name
   namespace                         = kubernetes_namespace.tools.metadata[0].name
   workload_identity_oidc_issuer_url = data.azurerm_kubernetes_cluster.m8t.oidc_issuer_url
   environment                       = var.env
