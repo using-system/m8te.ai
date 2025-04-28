@@ -3,6 +3,15 @@ variable "k8s_namespace" {
   type        = string
 }
 
+variable "env" {
+  description = "Environment name"
+}
+
+variable "project_name" {
+  description = "Project name"
+  type        = string
+}
+
 variable "workload_identity_oidc_issuer_url" {
   description = "The OIDC issuer URL of the workload identity"
   type        = string
