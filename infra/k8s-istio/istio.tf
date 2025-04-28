@@ -10,6 +10,8 @@ module "istio_tls_csi" {
 
   source = "../modules/k8s-csi-certificate"
 
+  env           = var.env
+  project_name  = var.project_name
   k8s_namespace = kubernetes_namespace.istio.metadata[0].name
 
   workload_identity_oidc_issuer_url = data.azurerm_kubernetes_cluster.m8t.oidc_issuer_url

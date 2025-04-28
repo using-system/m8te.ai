@@ -8,6 +8,16 @@ variable "namespace" {
   type        = string
 }
 
+variable "env" {
+  description = "The environment of the deployment"
+  type        = string
+}
+
+variable "project_name" {
+  description = "The project name of the deployment"
+  type        = string
+}
+
 variable "workload_identity_oidc_issuer_url" {
   description = "The OIDC issuer URL of the workload identity"
   type        = string
