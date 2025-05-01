@@ -8,6 +8,8 @@ metadata:
   namespace: ${kubernetes_namespace.app.metadata[0].name}
 spec:
   mode: sidecar
+  args:
+    feature-gates: "+service.profilesSupport"
   resources:
     requests:
       cpu:    ${var.default_cpu_request}
@@ -23,21 +25,20 @@ spec:
     processors:
       batch: {}
       k8sattributes:
-        auth_type: "serviceAccount"
-        passthrough: false
-        extract:
-          metadata:
-            - k8s.namespace.name
-            - k8s.pod.name
-            - k8s.pod.uid
-            - k8s.node.name
-            - k8s.deployment.name
-            - k8s.pod.start_time
+        passthrough: true
     exporters:
       prometheusremotewrite:
         endpoint: "http://${local.prometheus_server_service}/api/v1/write"
       otlphttp/loki:
         endpoint: "http://${local.loki_gateway_service}:3100/otlp"
+        headers:
+          X-Scope-OrgID: "default"
+      otlphttp/tempo:
+        endpoint: "http://${local.tempo_gateway_service}"
+        headers:
+          X-Scope-OrgID: "default"
+      otlp/pyroscope:
+        endpoint: "${local.pyroscope_distributor_service}:4040"
         tls:
           insecure: true
         headers:
@@ -52,6 +53,13 @@ spec:
           receivers: [otlp]
           processors: [batch, k8sattributes]
           exporters: [otlphttp/loki]
+        traces:
+          receivers: [otlp]
+          processors: [batch, k8sattributes]
+          exporters: [otlphttp/tempo]
+        profiles:
+          receivers: [otlp]
+          exporters: [otlp/pyroscope]
 YAML
 
   ignore_fields = [

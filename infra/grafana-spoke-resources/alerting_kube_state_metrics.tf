@@ -1,7 +1,7 @@
 resource "grafana_rule_group" "kube_state_metrics" {
   name             = "kube-state-metrics"
   folder_uid       = grafana_folder.k8s.uid
-  interval_seconds = 1800
+  interval_seconds = 300
 
   rule {
     name      = "NodeNotReady"
