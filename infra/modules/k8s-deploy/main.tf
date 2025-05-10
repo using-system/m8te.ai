@@ -34,6 +34,83 @@ resource "kubernetes_service_account" "this" {
   }
 }
 
+/*
+resource "kubernetes_role" "this" {
+  metadata {
+    name      = "${var.name}-reader"
+    namespace = var.namespace
+  }
+
+  rule {
+    api_groups = [""]
+    resources  = ["pods"]
+    verbs      = ["get", "list", "watch"]
+  }
+
+  rule {
+    api_groups = ["apps"]
+    resources  = ["replicasets"]
+    verbs      = ["get", "list", "watch"]
+  }
+}
+
+resource "kubernetes_role_binding" "this" {
+  metadata {
+    name      = "${var.name}-reader-binding"
+    namespace = var.namespace
+  }
+
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account.this.metadata[0].name
+    namespace = var.namespace
+  }
+
+  role_ref {
+    kind      = "Role"
+    name      = kubernetes_role.this.metadata[0].name
+    api_group = "rbac.authorization.k8s.io"
+  }
+}
+
+resource "kubernetes_cluster_role" "this" {
+  metadata {
+    name = "${var.env}-${var.name}-reader"
+  }
+
+  rule {
+    api_groups = [""]
+    resources  = ["pods"]
+    verbs      = ["get", "list", "watch"]
+  }
+
+  rule {
+    api_groups = ["apps"]
+    resources  = ["replicasets"]
+    verbs      = ["get", "list", "watch"]
+  }
+}
+
+resource "kubernetes_cluster_role_binding" "this" {
+  metadata {
+    name = "${var.env}-${var.name}-reader-binding"
+  }
+
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = kubernetes_cluster_role.this.metadata[0].name
+  }
+
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account.this.metadata[0].name
+    namespace = var.namespace
+  }
+}
+
+*/
+
 resource "azuread_application_federated_identity_credential" "this" {
   application_id = azuread_application.this.id
   display_name   = "${var.namespace}-${var.name}-credential"

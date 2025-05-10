@@ -3,6 +3,8 @@ locals {
   prometheus_alert_manager_service = "prometheus-alertmanager.${kubernetes_namespace.prometheus.metadata.0.name}.svc.cluster.local"
   thanos_query_service             = "thanos-query.${kubernetes_namespace.prometheus.metadata.0.name}.svc.cluster.local"
   thanos_store_service             = "thanos-storegateway.${kubernetes_namespace.prometheus.metadata.0.name}.svc.cluster.local"
+  thanos_compactor_service         = "thanos-compactor.${kubernetes_namespace.prometheus.metadata.0.name}.svc.cluster.local"
+  thanos_query_frontend_service    = "thanos-query-frontend.${kubernetes_namespace.prometheus.metadata.0.name}.svc.cluster.local"
 }
 
 resource "azurerm_resource_group" "prometheus" {
@@ -442,4 +444,90 @@ resource "kubernetes_horizontal_pod_autoscaler_v2" "thanos_hpa" {
       }
     }
   }
+}
+
+resource "kubectl_manifest" "thanos_otlp" {
+  depends_on = [
+    helm_release.thanos,
+  ]
+
+  yaml_body = <<YAML
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otlp-thanos
+  namespace: ${kubernetes_namespace.prometheus.metadata[0].name}
+spec:
+  mode: deployment
+
+  nodeSelector:
+    kubernetes.azure.com/scalesetpriority: spot
+
+  tolerations:
+    - key: kubernetes.azure.com/scalesetpriority
+      operator: Equal
+      value: spot
+      effect: NoSchedule
+        
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  config:
+    receivers:
+      prometheus:
+        config:
+          scrape_configs:
+
+            - job_name: "thanos-compactor"
+              scrape_interval: 30s
+              metrics_path: /metrics
+              static_configs:
+                - targets:
+                    - "${local.thanos_compactor_service}:9090"
+
+            - job_name: "thanos-query"
+              scrape_interval: 30s
+              metrics_path: /metrics
+              static_configs:
+                - targets:
+                    - "${local.thanos_query_service}:9090"
+
+            - job_name: "thanos-query-frontend"
+              scrape_interval: 30s
+              metrics_path: /metrics
+              static_configs:
+                - targets:
+                    - "${local.thanos_query_frontend_service}:9090"
+
+            - job_name: "thanos-store"
+              scrape_interval: 30s
+              metrics_path: /metrics
+              static_configs:
+                - targets:
+                    - "${local.thanos_store_service}:9090"
+
+    processors:
+      batch: {}
+    exporters:
+      prometheusremotewrite:
+        endpoint: "http://${local.prometheus_server_service}/api/v1/write"
+    service:
+      pipelines:
+        metrics:
+          receivers: [prometheus]
+          processors: [batch]
+          exporters: [prometheusremotewrite]
+YAML
+
+  ignore_fields = [
+    "metadata.annotations",
+    "metadata.labels",
+    "metadata.finalizers",
+    "status",
+    "spec",
+  ]
 }

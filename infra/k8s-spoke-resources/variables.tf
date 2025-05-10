@@ -94,8 +94,18 @@ variable "promtail_helmchart_version" {
   default     = "6.16.6"
 }
 
+variable "tempo_helmchart_version" {
+  description = "Tempo Helm Chart Version"
+  default     = "1.38.2"
+
+}
+
+variable "pyroscope_helmchart_version" {
+  description = "Pyroscope Helm Chart Version"
+  default     = "1.13.1"
+}
+
 variable "vpa_image" {
   description = "VPA Image"
   default     = "registry.k8s.io/autoscaling/vpa-recommender:1.3.0"
-
 }

@@ -1,7 +1,7 @@
 resource "grafana_rule_group" "loki" {
   name             = "loki"
   folder_uid       = grafana_folder.k8s.uid
-  interval_seconds = 1800
+  interval_seconds = 300
 
   rule {
     name      = "LokiCanaryMissingEntries"
@@ -103,7 +103,7 @@ resource "grafana_rule_group" "loki" {
       datasource_uid = "__expr__"
       model = jsonencode({
         type       = "math"
-        expression = "$ReduceIngestRate < 100000" # ~0,29 MiB/s
+        expression = "$ReduceIngestRate < 50000"
       })
     }
 

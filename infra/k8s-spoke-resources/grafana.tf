@@ -101,11 +101,16 @@ resource "kubernetes_secret_v1" "grafana" {
   }
 }
 
+# Refer to https://github.com/grafana/grafana/tree/main/docs/sources/datasources
+# for more information on the Grafana datasource configuration
 resource "helm_release" "grafana" {
 
   depends_on = [
     helm_release.prometheus,
     helm_release.loki,
+    helm_release.tempo,
+    helm_release.thanos,
+    helm_release.pyroscope,
     kubernetes_namespace.grafana,
     kubernetes_manifest.grafana_peer_authentication,
     kubernetes_secret_v1.grafana
@@ -161,18 +166,26 @@ grafana.ini:
     allowed_domains: ""
     allowed_groups: ""
 
+
+plugins:
+- https://storage.googleapis.com/integration-artifacts/grafana-exploretraces-app/grafana-exploretraces-app-latest.zip;grafana-traces-app
+- grafana-metricsdrilldown-app
+
 datasources:
   datasources.yaml:
     apiVersion: 1
     datasources:
       - name: Prometheus
+        uid: prometheus
         type: prometheus
         access: proxy
         url: "http://${local.thanos_query_service}:9090"
         isDefault: true
         jsonData:
           httpMethod: GET
+
       - name: Loki
+        uid: loki
         type: loki
         access: proxy
         url: "http://${local.loki_gateway_service}"
@@ -182,6 +195,32 @@ datasources:
         secureJsonData:
           httpHeaderValue1: default
 
+      - name: Pyroscope
+        uid: pyroscope
+        type: grafana-pyroscope-datasource
+        url: "http://${local.pyroscope_querier_service}:4040"
+        jsonData:
+          httpMethod: GET
+          httpHeaderName1: X-Scope-OrgID  
+        secureJsonData:
+          httpHeaderValue1: default
+          
+      - name: Tempo
+        type: tempo
+        access: proxy
+        url: "http://${local.tempo_gateway_service}"
+        jsonData:
+          httpMethod: GET
+          httpHeaderName1: X-Scope-OrgID
+          tracesToMetrics:
+            datasourceUid: 'prometheus'
+          tracesToLogsV2:
+            datasourceUid: 'loki'
+          tracesToProfiles:
+            datasourceUid: 'pyroscope'
+            profileTypeId: 'process_cpu:cpu:nanoseconds:cpu:nanoseconds'
+        secureJsonData:
+          httpHeaderValue1: default
 service:
   type: ClusterIP
 EOF
