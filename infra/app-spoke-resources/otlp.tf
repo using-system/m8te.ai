@@ -12,11 +12,11 @@ spec:
     feature-gates: "+service.profilesSupport"
   resources:
     requests:
-      cpu:    ${var.default_cpu_request}
-      memory: ${var.default_memory_request}
+      cpu:    ${var.resources.otlp.requests.cpu}
+      memory: ${var.resources.otlp.requests.memory}
     limits:
-      cpu:    ${var.default_cpu_limit}
-      memory: ${var.default_memory_limit}
+      cpu:    ${var.resources.otlp.limits.cpu}
+      memory: ${var.resources.otlp.limits.memory}
   config:
     receivers:
       otlp:
