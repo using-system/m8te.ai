@@ -12,11 +12,11 @@ spec:
     feature-gates: "+service.profilesSupport"
   resources:
     requests:
-      cpu:    ${var.default_cpu_request}
-      memory: ${var.default_memory_request}
+      cpu:    ${var.resources.otlp.requests.cpu}
+      memory: ${var.resources.otlp.requests.memory}
     limits:
-      cpu:    ${var.default_cpu_limit}
-      memory: ${var.default_memory_limit}
+      cpu:    ${var.resources.otlp.limits.cpu}
+      memory: ${var.resources.otlp.limits.memory}
   config:
     receivers:
       otlp:
@@ -33,8 +33,10 @@ spec:
         endpoint: "http://${local.loki_gateway_service}:3100/otlp"
         headers:
           X-Scope-OrgID: "default"
-      otlphttp/tempo:
-        endpoint: "http://${local.tempo_gateway_service}"
+      otlp/tempo:
+        endpoint: "http://${local.tempo_distributor_service}:4317"
+        tls:
+          insecure: true
         headers:
           X-Scope-OrgID: "default"
       otlp/pyroscope:
@@ -43,6 +45,8 @@ spec:
           insecure: true
         headers:
           X-Scope-OrgID: "default"
+      debug:
+        verbosity: detailed
     service:
       pipelines:
         metrics:
@@ -56,10 +60,11 @@ spec:
         traces:
           receivers: [otlp]
           processors: [batch, k8sattributes]
-          exporters: [otlphttp/tempo]
+          exporters: [otlp/tempo]
         profiles:
           receivers: [otlp]
           exporters: [otlp/pyroscope]
+
 YAML
 
   ignore_fields = [

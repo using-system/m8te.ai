@@ -1,18 +1,18 @@
-name: ui-landingapp
+name: components-gateway
 on:
   push:
     branches:
       - main
     paths:
-      - ".github/workflows/ui-landingapp.yml"
-      - "src/ui/landingapp/**"
+      - ".github/workflows/components-gateway.yml"
+      - "src/components/gateway/**"
   workflow_dispatch:
   pull_request:
     branches:
       - main
     paths:
-      - ".github/workflows/ui-landingapp.yml"
-      - "src/ui/landingapp/**"
+      - ".github/workflows/components-gateway.yml"
+      - "src/components/gateway/**"
 
 permissions:
   contents: write
@@ -37,16 +37,16 @@ jobs:
         id: version-tag
         uses: ./.github/actions/version-tag
         with:
-          prefix: landingapp
+          prefix: "gateway"
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
   docker:
     needs: [version-tag]
     uses: ./.github/workflows/template-docker.yml
     with:
-      dockerfile: src/ui/landingapp/Dockerfile
-      working-directory: src/ui/landingapp
-      image_name: m8thubinfraweacr.azurecr.io/landingapp
+      dockerfile: src/components/gateway/Dockerfile
+      working-directory: src/components/gateway
+      image_name: m8thubinfraweacr.azurecr.io/gateway
       version: ${{ needs.version-tag.outputs.version }}
     secrets: inherit
 
@@ -63,7 +63,7 @@ jobs:
     with:
       environment: ${{ matrix.env.name }}
       namespace: "m8t-${{ matrix.env.name }}"
-      app-name: "m8t-landing-app"
+      app-name: "m8t-gateway"
       image: ${{ needs.docker.outputs.image_name }}
       aks-cluster-name: "m8t-aks"
       aks-resource-group: "m8t-${{ matrix.env.infra }}-we-aks"    
