@@ -166,6 +166,9 @@ grafana.ini:
     allowed_domains: ""
     allowed_groups: ""
 
+  feature_toggles:
+    enable: "appPlatform"
+
 
 plugins:
 - https://storage.googleapis.com/integration-artifacts/grafana-exploretraces-app/grafana-exploretraces-app-latest.zip;grafana-traces-app
