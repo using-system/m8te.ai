@@ -12,9 +12,6 @@ on:
         image:
           required: true
           type: string
-        version-tag:
-          required: false
-          type: string
         namespace:
           required: false
           type: string
@@ -72,14 +69,14 @@ jobs:
         git push --delete origin "$ENVIRONMENT-$VERSION_TAG" || echo "Failed to delete tag, but continuing anyway."
       env:
         ENVIRONMENT: ${{ inputs.environment }}
-        VERSION_TAG: ${{ inputs.version-tag }}
+        VERSION_TAG: ${{ inputs.app-name }}
       continue-on-error: true
         
     - name: Tag deployment
       uses: mathieudutour/github-tag-action@v6.2
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        custom_tag:  "${{ inputs.environment}}-${{ inputs.version-tag}}"
+        custom_tag:  "${{ inputs.environment}}-${{ inputs.app-name}}"
         release_branches: "main"
         tag_prefix: ""
       continue-on-error: true

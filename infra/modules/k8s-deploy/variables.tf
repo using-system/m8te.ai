@@ -95,11 +95,14 @@ variable "environment" {
 variable "resource_limits" {
   description = "Resource limits for the container"
   type        = map(string)
+  default     = { cpu = "100m", memory = "128Mi" }
 }
 
 variable "resource_requests" {
   description = "Resource requests for the container"
   type        = map(string)
+  default     = { cpu = "300m", memory = "384Mi" }
+
 }
 
 variable "role_assignments" {

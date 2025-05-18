@@ -1,4 +1,3 @@
-
 #------------------------------------------------------------------------------
 # Global Variables
 #------------------------------------------------------------------------------
@@ -62,23 +61,17 @@ variable "host_prefix" {
   description = "The prefix for the hostnames"
 }
 
-variable "default_cpu_request" {
-  description = "The CPU request for an app"
-  default     = "100m"
+variable "resources" {
+  description = "Resource requests and limits for the deployments"
+  type = map(object({
+    requests = object({
+      cpu    = string
+      memory = string
+    })
+    limits = object({
+      cpu    = string
+      memory = string
+    })
+  }))
+  default = {}
 }
-
-variable "default_memory_request" {
-  description = "The memory request for an app"
-  default     = "128Mi"
-}
-
-variable "default_cpu_limit" {
-  description = "The CPU limit for an app"
-  default     = "300m"
-}
-
-variable "default_memory_limit" {
-  description = "values for memory limit"
-  default     = "384Mi"
-}
-
