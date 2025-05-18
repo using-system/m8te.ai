@@ -216,6 +216,12 @@ ingester:
       value: spot
       effect: NoSchedule
 
+  podAnnotations:
+    traffic.sidecar.istio.io/excludeOutboundPorts: "9095"
+    traffic.sidecar.istio.io/excludeInboundPorts: "9095"
+
+
+
 distributor:
   appProtocol:
     grpc: "tcp"
@@ -226,6 +232,10 @@ distributor:
       operator: Equal
       value: spot
       effect: NoSchedule
+
+  podAnnotations:
+    traffic.sidecar.istio.io/excludeOutboundPorts: "9095"
+    traffic.sidecar.istio.io/excludeInboundPorts: "9095"
 
 compactor:
   appProtocol:
@@ -238,6 +248,10 @@ compactor:
       value: spot
       effect: NoSchedule
 
+  podAnnotations:
+    traffic.sidecar.istio.io/excludeOutboundPorts: "9095"
+    traffic.sidecar.istio.io/excludeInboundPorts: "9095"
+
 querier:
   appProtocol:
     grpc: "tcp"
@@ -249,6 +263,10 @@ querier:
       value: spot
       effect: NoSchedule
 
+  podAnnotations:
+    traffic.sidecar.istio.io/excludeOutboundPorts: "9095"
+    traffic.sidecar.istio.io/excludeInboundPorts: "9095"
+
 queryFrontend:
   appProtocol:
     grpc: "tcp"
@@ -259,6 +277,9 @@ queryFrontend:
       operator: Equal
       value: spot
       effect: NoSchedule
+  podAnnotations:
+    traffic.sidecar.istio.io/excludeOutboundPorts: "9095"
+    traffic.sidecar.istio.io/excludeInboundPorts: "9095"
 
 gateway:
   enabled: true
@@ -270,6 +291,9 @@ gateway:
       operator: Equal
       value: spot
       effect: NoSchedule
+  podAnnotations:
+    traffic.sidecar.istio.io/excludeOutboundPorts: "9095"
+    traffic.sidecar.istio.io/excludeInboundPorts: "9095"
 
 metricsGenerator:
   enabled: true
@@ -286,6 +310,10 @@ metricsGenerator:
       operator: Equal
       value: spot
       effect: NoSchedule
+
+  podAnnotations:
+    traffic.sidecar.istio.io/excludeOutboundPorts: "9095"
+    traffic.sidecar.istio.io/excludeInboundPorts: "9095"
 
 memcached:
 
