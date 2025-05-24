@@ -52,55 +52,22 @@ variable "aks_resource_group_name" {
 }
 
 #------------------------------------------------------------------------------
-# Kubernetes Variables
+# GITHUB RUNNER Variables
 #------------------------------------------------------------------------------
 
-variable "ingress_prefix" {
-  description = "Ingress prefix"
+variable "gh_runner_image" {
+  description = "GitHub Runner Image"
+  default     = "myoung34/github-runner:2.324.0@sha256:59a814bb19d519f6db2f410d9955ff8eeed5cbfbaa370ef1dd5148f241dfd8fc"
 }
 
-
-#------------------------------------------------------------------------------
-# Helm Chart Variables
-#------------------------------------------------------------------------------
-
-variable "prometheus_helmchart_version" {
-  description = "Prometheus Helm Chart Version"
-  default     = "26.0.1"
+variable "gh_runner_app_id" {
+  description = "GitHub Runner App ID"
 }
 
-variable "thanos_helmchart_version" {
-  description = "TJ Helm Chart Version"
-  default     = "15.9.2"
+variable "gh_runner_app_private_key" {
+  description = "GitHub Runner App Private Key"
 }
 
-variable "thanos_sidecar_image" {
-  description = "Thanos Sidecar Image"
-  default     = "quay.io/thanos/thanos:v0.37.2"
-}
-
-variable "grafana_helmchart_version" {
-  description = "Grafana Helm Chart Version"
-  default     = "9.0.0"
-}
-
-variable "loki_helmchart_version" {
-  description = "Loki Helm Chart Version"
-  default     = "6.29.0"
-}
-
-variable "promtail_helmchart_version" {
-  description = "Promtail Helm Chart Version"
-  default     = "6.16.6"
-}
-
-variable "tempo_helmchart_version" {
-  description = "Tempo Helm Chart Version"
-  default     = "1.38.2"
-
-}
-
-variable "pyroscope_helmchart_version" {
-  description = "Pyroscope Helm Chart Version"
-  default     = "1.13.4"
+variable "gh_runner_labels" {
+  description = "GitHub Runner App Private Key"
 }

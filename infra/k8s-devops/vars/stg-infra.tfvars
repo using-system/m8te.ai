@@ -7,3 +7,9 @@ tags = {
   env           = "stg-infra"
   provisionedby = "terraform"
 }
+
+#------------------------------------------------------------------------------
+# GITHUB RUNNER Variables
+#------------------------------------------------------------------------------
+
+gh_runner_labels = "m8t,stg-infra,dev-app,prd-app"
