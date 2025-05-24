@@ -11,11 +11,11 @@ module "gh_runner" {
 
   container_app_environment_id = azurerm_container_app_environment.aca.id
 
-  image        = "myoung34/github-runner:latest"
+  image        = var.gh_runner_image
   cpu          = "1"
   memory       = "2Gi"
-  min_replicas = 4
-  max_replicas = 4
+  min_replicas = 1
+  max_replicas = 1
 
   secrets = [
     {

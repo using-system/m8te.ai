@@ -17,7 +17,8 @@ resource "kubernetes_namespace" "pyroscope" {
     name = "pyroscope"
 
     labels = {
-      provisioned_by = "terraform"
+      istio-injection = "enabled"
+      provisioned_by  = "terraform"
     }
   }
 }
@@ -173,6 +174,9 @@ pyroscope:
         container_name: ${local.pyroscope_container_name}
   extraLabels:
     azure.workload.identity/use: "true"
+  podAnnotations:
+    traffic.sidecar.istio.io/excludeOutboundPorts: "4040,7946,9095"
+    traffic.sidecar.istio.io/excludeInboundPorts: "4040,7946,9095"
   service:
     port_name: grpc
   components:

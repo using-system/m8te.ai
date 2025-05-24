@@ -50,6 +50,11 @@ variable "vnet_subnets" {
 # GITHUB RUNNER Variables
 #------------------------------------------------------------------------------
 
+variable "gh_runner_image" {
+  description = "GitHub Runner Image"
+  default     = "myoung34/github-runner:2.324.0@sha256:59a814bb19d519f6db2f410d9955ff8eeed5cbfbaa370ef1dd5148f241dfd8fc"
+}
+
 variable "gh_runner_app_id" {
   description = "GitHub Runner App ID"
 }
