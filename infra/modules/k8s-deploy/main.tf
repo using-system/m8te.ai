@@ -105,22 +105,27 @@ resource "kubernetes_deployment" "this" {
 
       spec {
 
-        node_selector = {
-          "kubernetes.azure.com/scalesetpriority" = "spot"
-        }
+        node_selector = var.node_selector != null ? var.node_selector : {}
 
-        toleration {
-          key      = "kubernetes.azure.com/scalesetpriority"
-          operator = "Equal"
-          value    = "spot"
-          effect   = "NoSchedule"
+        dynamic "toleration" {
+          for_each = var.node_selector != null ? [1] : []
+          content {
+            key      = keys(var.node_selector)[0]
+            operator = "Equal"
+            value    = values(var.node_selector)[0]
+            effect   = "NoSchedule"
+          }
         }
 
         service_account_name = local.service_account_name
 
-        security_context {
-          run_as_user  = var.run_as_user
-          run_as_group = var.run_as_group
+        dynamic "security_context" {
+          for_each = var.run_as_root ? [] : [1]
+
+          content {
+            run_as_user  = var.run_as_user
+            run_as_group = var.run_as_group
+          }
         }
 
         container {
@@ -135,14 +140,19 @@ resource "kubernetes_deployment" "this" {
             requests = var.resource_requests
           }
 
-          security_context {
-            allow_privilege_escalation = false
-            capabilities {
-              drop = ["ALL"]
+          dynamic "security_context" {
+            for_each = var.run_as_root ? [] : [1]
+
+            content {
+              allow_privilege_escalation = false
+              capabilities {
+                drop = ["ALL"]
+              }
+              read_only_root_filesystem = var.read_only_root_filesystem
+              run_as_non_root           = true
             }
-            read_only_root_filesystem = var.read_only_root_filesystem
-            run_as_non_root           = true
           }
+
 
           dynamic "env" {
             for_each = local.merged_env_vars

@@ -12,4 +12,6 @@ tags = {
 # Kubernetes Variables
 #------------------------------------------------------------------------------
 
-ingress_prefix = ""
+node_selector = {
+  "kubernetes.azure.com/scalesetpriority" = "spot"
+}

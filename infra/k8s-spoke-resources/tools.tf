@@ -42,6 +42,8 @@ module "curl" {
   workload_identity_oidc_issuer_url = data.azurerm_kubernetes_cluster.m8t.oidc_issuer_url
   environment                       = var.env
 
+  node_selector = var.node_selector
+
   resource_requests = {
     cpu    = "100m"
     memory = "128Mi"

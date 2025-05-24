@@ -29,32 +29,31 @@ variable "project_name" {
   default     = "m8t"
 }
 
+variable "dns_zone_name" {
+  description = "DNS Zone Name"
+  default     = "m8te.ai"
+}
+
 variable "tags" {
   description = "The default tags to associate with resources."
   type        = map(string)
 }
 
 #------------------------------------------------------------------------------
-# NETWORKING
+# AKS Variables
 #------------------------------------------------------------------------------
 
-variable "vnet_address_space" {
-  description = "Address space for the VNET"
+variable "aks_cluster_name" {
+  description = "The name of the AKS cluster"
 }
 
-variable "vnet_subnets" {
-  description = "Subnets for the VNET"
+variable "aks_resource_group_name" {
+  description = "The name of the resource group containing the AKS cluster"
 }
 
 #------------------------------------------------------------------------------
 # GITHUB RUNNER Variables
 #------------------------------------------------------------------------------
-
-variable "gh_aca_runner_enable" {
-  description = "Enable ACA GitHub Runner"
-  type        = bool
-  default     = true
-}
 
 variable "gh_runner_image" {
   description = "GitHub Runner Image"

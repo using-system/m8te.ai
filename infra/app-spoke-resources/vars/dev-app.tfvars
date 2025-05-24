@@ -14,10 +14,9 @@ tags = {
 
 host_prefix = "dev-"
 
-
-#------------------------------------------------------------------------------
-# Resources
-#------------------------------------------------------------------------------
+node_selector = {
+  "kubernetes.azure.com/scalesetpriority" = "spot"
+}
 
 resources = {
   otlp = {

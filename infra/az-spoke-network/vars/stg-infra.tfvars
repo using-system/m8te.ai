@@ -111,4 +111,5 @@ vnet_subnets = {
 # GITHUB RUNNER Variables
 #------------------------------------------------------------------------------
 
-gh_runner_labels = "m8t,stg-infra,dev-app,prd-app"
+gh_aca_runner_enable = false
+gh_runner_labels     = "m8t,stg-infra,dev-app,prd-app"
