@@ -1,18 +1,18 @@
-name: ui-landingapp
+name: components-landingapp
 on:
   push:
     branches:
       - main
     paths:
-      - ".github/workflows/ui-landingapp.yml"
-      - "src/ui/landingapp/**"
+      - ".github/workflows/components-landingapp.yml"
+      - "src/components/landingapp/**"
   workflow_dispatch:
   pull_request:
     branches:
       - main
     paths:
-      - ".github/workflows/ui-landingapp.yml"
-      - "src/ui/landingapp/**"
+      - ".github/workflows/components-landingapp.yml"
+      - "src/components/landingapp/**"
 
 permissions:
   contents: write
@@ -44,8 +44,8 @@ jobs:
     needs: [version-tag]
     uses: ./.github/workflows/template-docker.yml
     with:
-      dockerfile: src/ui/landingapp/Dockerfile
-      working-directory: src/ui/landingapp
+      dockerfile: src/components/landingapp/Dockerfile
+      working-directory: src/components/landingapp
       image_name: m8thubinfraweacr.azurecr.io/landingapp
       version: ${{ needs.version-tag.outputs.version }}
     secrets: inherit
