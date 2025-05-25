@@ -120,15 +120,16 @@ resource "kubernetes_deployment" "this" {
 
       spec {
 
-        node_selector = {
-          "kubernetes.azure.com/scalesetpriority" = "spot"
-        }
+        node_selector = var.node_selector != null ? var.node_selector : {}
 
-        toleration {
-          key      = "kubernetes.azure.com/scalesetpriority"
-          operator = "Equal"
-          value    = "spot"
-          effect   = "NoSchedule"
+        dynamic "toleration" {
+          for_each = var.node_selector != null ? [1] : []
+          content {
+            key      = keys(var.node_selector)[0]
+            operator = "Equal"
+            value    = values(var.node_selector)[0]
+            effect   = "NoSchedule"
+          }
         }
 
         security_context {

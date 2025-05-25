@@ -156,187 +156,158 @@ resource "helm_release" "pyroscope" {
   version    = var.pyroscope_helmchart_version
 
   values = [
-    <<EOF
-pyroscope:
-  serviceAccount:
-    name: ${local.pyroscope_service_account_name}
-    annotations:
-      azure.workload.identity/client-id: "${azuread_application.pyroscope.client_id}"   
-      azure.workload.identity/tenant-id: "${data.azurerm_client_config.current.tenant_id}"
-      azure.workload.identity/audience: "api://AzureADTokenExchange"
-    labels:
-      azure.workload.identity/use: "true"
-  structuredConfig:
-    storage:
-      backend: azure
-      azure:
-        account_name: ${azurerm_storage_account.pyroscope.name}
-        container_name: ${local.pyroscope_container_name}
-  extraLabels:
-    azure.workload.identity/use: "true"
-  podAnnotations:
-    traffic.sidecar.istio.io/excludeOutboundPorts: "4040,7946,9095"
-    traffic.sidecar.istio.io/excludeInboundPorts: "4040,7946,9095"
-  service:
-    port_name: grpc
-  components:
-    querier:
-      kind: Deployment
-      replicaCount: 3
-      resources:
-        limits:
-          memory: 1Gi
-        requests:
-          memory: 256Mi
-          cpu: 1
-      nodeSelector:
-        kubernetes.azure.com/scalesetpriority: spot
-      tolerations:
-        - key: kubernetes.azure.com/scalesetpriority
-          operator: Equal
-          value: spot
-          effect: NoSchedule
-    query-frontend:
-      kind: Deployment
-      replicaCount: 2
-      resources:
-        limits:
-          memory: 1Gi
-        requests:
-          memory: 256Mi
-          cpu: 100m
-      nodeSelector:
-        kubernetes.azure.com/scalesetpriority: spot
-      tolerations:
-        - key: kubernetes.azure.com/scalesetpriority
-          operator: Equal
-          value: spot
-          effect: NoSchedule
-    query-scheduler:
-      kind: Deployment
-      replicaCount: 2
-      resources:
-        limits:
-          memory: 1Gi
-        requests:
-          memory: 256Mi
-          cpu: 100m
-      nodeSelector:
-        kubernetes.azure.com/scalesetpriority: spot
-      tolerations:
-        - key: kubernetes.azure.com/scalesetpriority
-          operator: Equal
-          value: spot
-          effect: NoSchedule
-    distributor:
-      labels:
-        sidecar.istio.io/inject: "true"
-      kind: Deployment
-      replicaCount: 2
-      resources:
-        limits:
-          memory: 1Gi
-        requests:
-          memory: 256Mi
-          cpu: 500m
-      nodeSelector:
-        kubernetes.azure.com/scalesetpriority: spot
-      tolerations:
-        - key: kubernetes.azure.com/scalesetpriority
-          operator: Equal
-          value: spot
-          effect: NoSchedule
-    ingester:
-      kind: StatefulSet
-      replicaCount: 3
-      terminationGracePeriodSeconds: 600
-      resources:
-        limits:
-          memory: 16Gi
-        requests:
-          memory: 8Gi
-          cpu: 
-      nodeSelector:
-        kubernetes.azure.com/scalesetpriority: spot
-      tolerations:
-        - key: kubernetes.azure.com/scalesetpriority
-          operator: Equal
-          value: spot
-          effect: NoSchedule
-    compactor:
-      kind: StatefulSet
-      replicaCount: 3
-      terminationGracePeriodSeconds: 1200
-      persistence:
-        enabled: false
-      resources:
-        limits:
-          memory: 16Gi
-        requests:
-          memory: 8Gi
-          cpu: 1
-      nodeSelector:
-        kubernetes.azure.com/scalesetpriority: spot
-      tolerations:
-        - key: kubernetes.azure.com/scalesetpriority
-          operator: Equal
-          value: spot
-          effect: NoSchedule
-    store-gateway:
-      kind: StatefulSet
-      replicaCount: 3
-      persistence:
-        enabled: false
-      resources:
-        limits:
-          memory: 16Gi
-        requests:
-          memory: 8Gi
-          cpu: 1
-      nodeSelector:
-        kubernetes.azure.com/scalesetpriority: spot
-      tolerations:
-        - key: kubernetes.azure.com/scalesetpriority
-          operator: Equal
-          value: spot
-          effect: NoSchedule
-      readinessProbe:
-        initialDelaySeconds: 60
-    tenant-settings:
-      kind: Deployment
-      replicaCount: 1
-      resources:
-        limits:
-          memory: 4Gi
-        requests:
-          memory: 16Mi
-          cpu: 0.
-      nodeSelector:
-        kubernetes.azure.com/scalesetpriority: spot
-      tolerations:
-        - key: kubernetes.azure.com/scalesetpriority
-          operator: Equal
-          value: spot
-          effect: NoSchedule
-    ad-hoc-profiles:
-      kind: Deployment
-      replicaCount: 1
-      resources:
-        limits:
-          memory: 4Gi
-        requests:
-          memory: 16Mi
-          cpu: 0.1
-      nodeSelector:
-        kubernetes.azure.com/scalesetpriority: spot
-      tolerations:
-        - key: kubernetes.azure.com/scalesetpriority
-          operator: Equal
-          value: spot
-          effect: NoSchedule
-minio:
-  enabled: false
-EOF
+    yamlencode({
+      pyroscope = {
+        serviceAccount = {
+          name = local.pyroscope_service_account_name
+          annotations = {
+            "azure.workload.identity/client-id" = azuread_application.pyroscope.client_id
+            "azure.workload.identity/tenant-id" = data.azurerm_client_config.current.tenant_id
+            "azure.workload.identity/audience"  = "api://AzureADTokenExchange"
+          }
+          labels = {
+            "azure.workload.identity/use" = "true"
+          }
+        }
+
+        structuredConfig = {
+          storage = {
+            backend = "azure"
+            azure = {
+              account_name   = azurerm_storage_account.pyroscope.name
+              container_name = local.pyroscope_container_name
+            }
+          }
+        }
+
+        extraLabels = {
+          "azure.workload.identity/use" = "true"
+        }
+
+        podAnnotations = {
+          "traffic.sidecar.istio.io/excludeOutboundPorts" = "4040,7946,9095"
+          "traffic.sidecar.istio.io/excludeInboundPorts"  = "4040,7946,9095"
+        }
+
+        service = {
+          port_name = "grpc"
+        }
+
+        components = {
+          querier = {
+            kind         = "Deployment"
+            replicaCount = 3
+            resources = {
+              limits   = { memory = "1Gi" }
+              requests = { memory = "256Mi", cpu = "1" }
+            }
+            nodeSelector = var.node_selector
+            tolerations  = local.tolerations_from_node_selector
+          }
+
+          query-frontend = {
+            kind         = "Deployment"
+            replicaCount = 2
+            resources = {
+              limits   = { memory = "1Gi" }
+              requests = { memory = "256Mi", cpu = "100m" }
+            }
+            nodeSelector = var.node_selector
+            tolerations  = local.tolerations_from_node_selector
+          }
+
+          query-scheduler = {
+            kind         = "Deployment"
+            replicaCount = 2
+            resources = {
+              limits   = { memory = "1Gi" }
+              requests = { memory = "256Mi", cpu = "100m" }
+            }
+            nodeSelector = var.node_selector
+            tolerations  = local.tolerations_from_node_selector
+          }
+
+          distributor = {
+            kind         = "Deployment"
+            replicaCount = 2
+            labels = {
+              "sidecar.istio.io/inject" = "true"
+            }
+            resources = {
+              limits   = { memory = "1Gi" }
+              requests = { memory = "256Mi", cpu = "500m" }
+            }
+            nodeSelector = var.node_selector
+            tolerations  = local.tolerations_from_node_selector
+          }
+
+          ingester = {
+            kind                          = "StatefulSet"
+            replicaCount                  = 3
+            terminationGracePeriodSeconds = 600
+            resources = {
+              limits   = { memory = "16Gi" }
+              requests = { memory = "8Gi" }
+            }
+            nodeSelector = var.node_selector
+            tolerations  = local.tolerations_from_node_selector
+          }
+
+          compactor = {
+            kind                          = "StatefulSet"
+            replicaCount                  = 3
+            terminationGracePeriodSeconds = 1200
+            persistence                   = { enabled = false }
+            resources = {
+              limits   = { memory = "16Gi" }
+              requests = { memory = "8Gi", cpu = "1" }
+            }
+            nodeSelector = var.node_selector
+            tolerations  = local.tolerations_from_node_selector
+          }
+
+          store-gateway = {
+            kind         = "StatefulSet"
+            replicaCount = 3
+            persistence  = { enabled = false }
+            readinessProbe = {
+              initialDelaySeconds = 60
+            }
+            resources = {
+              limits   = { memory = "16Gi" }
+              requests = { memory = "8Gi", cpu = "1" }
+            }
+            nodeSelector = var.node_selector
+            tolerations  = local.tolerations_from_node_selector
+          }
+
+          tenant-settings = {
+            kind         = "Deployment"
+            replicaCount = 1
+            resources = {
+              limits   = { memory = "4Gi" }
+              requests = { memory = "16Mi", cpu = "0" }
+            }
+            nodeSelector = var.node_selector
+            tolerations  = local.tolerations_from_node_selector
+          }
+
+          ad-hoc-profiles = {
+            kind         = "Deployment"
+            replicaCount = 1
+            resources = {
+              limits   = { memory = "4Gi" }
+              requests = { memory = "16Mi", cpu = "0.1" }
+            }
+            nodeSelector = var.node_selector
+            tolerations  = local.tolerations_from_node_selector
+          }
+        }
+      }
+
+      minio = {
+        enabled = false
+      }
+    })
   ]
 }
-

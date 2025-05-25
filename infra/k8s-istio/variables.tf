@@ -56,6 +56,10 @@ variable "aks_resource_group_name" {
 # Helm Chart Variables
 #------------------------------------------------------------------------------
 
+variable "node_selector" {
+  description = "Node selector for Kubernetes deployment"
+  type        = map(string)
+}
 
 variable "istio_base_helmchart_version" {
   description = "Istio Base Helm Chart Version"

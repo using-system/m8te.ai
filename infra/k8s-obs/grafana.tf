@@ -104,7 +104,6 @@ resource "kubernetes_secret_v1" "grafana" {
 # Refer to https://github.com/grafana/grafana/tree/main/docs/sources/datasources
 # for more information on the Grafana datasource configuration
 resource "helm_release" "grafana" {
-
   depends_on = [
     helm_release.prometheus,
     helm_release.loki,
@@ -123,112 +122,140 @@ resource "helm_release" "grafana" {
   version    = var.grafana_helmchart_version
 
   values = [
-    <<EOF
-envValueFrom:
-  GRAFANA_AZUREAD_CLIENT_ID:
-    secretKeyRef:
-      name: grafana-secret
-      key: azuread_client_id
-  GRAFANA_AZUREAD_CLIENT_SECRET:
-    secretKeyRef:
-      name: grafana-secret
-      key: azuread_client_secret
-  GRAFANA_AZUREAD_TENANT_ID:
-    secretKeyRef:
-      name: grafana-secret
-      key: azuread_tenant_id
+    yamlencode({
+      envValueFrom = {
+        GRAFANA_AZUREAD_CLIENT_ID = {
+          secretKeyRef = {
+            name = "grafana-secret"
+            key  = "azuread_client_id"
+          }
+        }
+        GRAFANA_AZUREAD_CLIENT_SECRET = {
+          secretKeyRef = {
+            name = "grafana-secret"
+            key  = "azuread_client_secret"
+          }
+        }
+        GRAFANA_AZUREAD_TENANT_ID = {
+          secretKeyRef = {
+            name = "grafana-secret"
+            key  = "azuread_tenant_id"
+          }
+        }
+      }
 
-nodeSelector:
-  "kubernetes.azure.com/scalesetpriority": "spot"
-tolerations:
-  - key: "kubernetes.azure.com/scalesetpriority"
-    operator: "Equal"
-    value: "spot"
-    effect: "NoSchedule"
+      nodeSelector = var.node_selector
+      tolerations  = local.tolerations_from_node_selector
 
-persistence:
-  enabled: true
-  size: 10Gi
-  storageClassName: "default"
+      persistence = {
+        enabled          = true
+        size             = "10Gi"
+        storageClassName = "default"
+      }
 
-grafana.ini:
-  server:
-    root_url: https://${local.grafana_host}
-  auth.azuread:
-    name: Azure AD
-    enabled: true
-    allow_sign_up: true
-    client_id: "$${GRAFANA_AZUREAD_CLIENT_ID}"
-    client_secret: "$${GRAFANA_AZUREAD_CLIENT_SECRET}"
-    scopes: "openid email profile"
-    auth_url: "https://login.microsoftonline.com/$${GRAFANA_AZUREAD_TENANT_ID}/oauth2/v2.0/authorize"
-    token_url: "https://login.microsoftonline.com/$${GRAFANA_AZUREAD_TENANT_ID}/oauth2/v2.0/token"
-    allowed_domains: ""
-    allowed_groups: ""
+      "grafana.ini" = {
+        server = {
+          root_url = "https://${local.grafana_host}"
+        }
+        "auth.azuread" = {
+          name            = "Azure AD"
+          enabled         = true
+          allow_sign_up   = true
+          client_id       = "$${GRAFANA_AZUREAD_CLIENT_ID}"
+          client_secret   = "$${GRAFANA_AZUREAD_CLIENT_SECRET}"
+          scopes          = "openid email profile"
+          auth_url        = "https://login.microsoftonline.com/$${GRAFANA_AZUREAD_TENANT_ID}/oauth2/v2.0/authorize"
+          token_url       = "https://login.microsoftonline.com/$${GRAFANA_AZUREAD_TENANT_ID}/oauth2/v2.0/token"
+          allowed_domains = ""
+          allowed_groups  = ""
+        }
+        feature_toggles = {
+          enable = "appPlatform"
+        }
+      }
 
-  feature_toggles:
-    enable: "appPlatform"
+      plugins = [
+        "https://storage.googleapis.com/integration-artifacts/grafana-exploretraces-app/grafana-exploretraces-app-latest.zip;grafana-traces-app",
+        "grafana-metricsdrilldown-app"
+      ]
 
+      datasources = {
+        "datasources.yaml" = {
+          apiVersion = 1
+          datasources = [
+            {
+              name      = "Prometheus"
+              uid       = "prometheus"
+              type      = "prometheus"
+              access    = "proxy"
+              url       = "http://${local.thanos_query_service}:9090"
+              isDefault = true
+              jsonData = {
+                httpMethod = "GET"
+              }
+            },
+            {
+              name   = "Loki"
+              uid    = "loki"
+              type   = "loki"
+              access = "proxy"
+              url    = "http://${local.loki_gateway_service}"
+              jsonData = {
+                httpMethod      = "GET"
+                httpHeaderName1 = "X-Scope-OrgID"
+              }
+              secureJsonData = {
+                httpHeaderValue1 = "default"
+              }
+            },
+            {
+              name = "Pyroscope"
+              uid  = "pyroscope"
+              type = "grafana-pyroscope-datasource"
+              url  = "http://${local.pyroscope_querier_service}:4040"
+              jsonData = {
+                httpMethod      = "GET"
+                httpHeaderName1 = "X-Scope-OrgID"
+              }
+              secureJsonData = {
+                httpHeaderValue1 = "default"
+              }
+            },
+            {
+              name   = "Tempo"
+              type   = "tempo"
+              access = "proxy"
+              url    = "http://${local.tempo_gateway_service}"
+              jsonData = {
+                httpMethod      = "GET"
+                httpHeaderName1 = "X-Scope-OrgID"
+                tracesToMetrics = {
+                  datasourceUid = "prometheus"
+                }
+                tracesToLogsV2 = {
+                  datasourceUid = "loki"
+                }
+                tracesToProfiles = {
+                  datasourceUid = "pyroscope"
+                  profileTypeId = "process_cpu:cpu:nanoseconds:cpu:nanoseconds"
+                }
+              }
+              secureJsonData = {
+                httpHeaderValue1 = "default"
+              }
+            }
+          ]
+        }
+      }
 
-plugins:
-- https://storage.googleapis.com/integration-artifacts/grafana-exploretraces-app/grafana-exploretraces-app-latest.zip;grafana-traces-app
-- grafana-metricsdrilldown-app
-
-datasources:
-  datasources.yaml:
-    apiVersion: 1
-    datasources:
-      - name: Prometheus
-        uid: prometheus
-        type: prometheus
-        access: proxy
-        url: "http://${local.thanos_query_service}:9090"
-        isDefault: true
-        jsonData:
-          httpMethod: GET
-
-      - name: Loki
-        uid: loki
-        type: loki
-        access: proxy
-        url: "http://${local.loki_gateway_service}"
-        jsonData:
-          httpMethod: GET
-          httpHeaderName1: X-Scope-OrgID  
-        secureJsonData:
-          httpHeaderValue1: default
-
-      - name: Pyroscope
-        uid: pyroscope
-        type: grafana-pyroscope-datasource
-        url: "http://${local.pyroscope_querier_service}:4040"
-        jsonData:
-          httpMethod: GET
-          httpHeaderName1: X-Scope-OrgID  
-        secureJsonData:
-          httpHeaderValue1: default
-          
-      - name: Tempo
-        type: tempo
-        access: proxy
-        url: "http://${local.tempo_gateway_service}"
-        jsonData:
-          httpMethod: GET
-          httpHeaderName1: X-Scope-OrgID
-          tracesToMetrics:
-            datasourceUid: 'prometheus'
-          tracesToLogsV2:
-            datasourceUid: 'loki'
-          tracesToProfiles:
-            datasourceUid: 'pyroscope'
-            profileTypeId: 'process_cpu:cpu:nanoseconds:cpu:nanoseconds'
-        secureJsonData:
-          httpHeaderValue1: default
-service:
-  type: ClusterIP
-EOF
+      service = {
+        type = "ClusterIP"
+      }
+    })
   ]
 }
+
+
 
 resource "kubernetes_manifest" "grafana_http_route" {
   depends_on = [helm_release.grafana]

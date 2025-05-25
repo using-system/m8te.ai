@@ -1,7 +1,7 @@
 resource "grafana_rule_group" "prometheus" {
   name             = "prometheus"
   folder_uid       = grafana_folder.k8s.uid
-  interval_seconds = 300
+  interval_seconds = 1800
 
   rule {
     name      = "PrometheusSelfScrapeDown"

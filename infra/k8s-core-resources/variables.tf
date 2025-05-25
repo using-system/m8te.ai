@@ -51,10 +51,14 @@ variable "aks_resource_group_name" {
   description = "The name of the resource group containing the AKS cluster"
 }
 
-
 #------------------------------------------------------------------------------
 # Helm Chart Variables
 #------------------------------------------------------------------------------
+
+variable "node_selector" {
+  description = "Node selector for Kubernetes deployment"
+  type        = map(string)
+}
 
 variable "gateway_api_helmchart_version" {
   description = "Gateway API Helm Chart Version"
