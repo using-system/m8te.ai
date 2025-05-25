@@ -21,42 +21,44 @@ resource "helm_release" "vpa" {
   version    = var.vpa_helmchart_version
 
   values = [
-    <<EOF
-updater:
-  nodeSelector:
-    "kubernetes.azure.com/scalesetpriority": "spot"
-  tolerations:
-    - key: "kubernetes.azure.com/scalesetpriority"
-      operator: "Equal"
-      value: "spot"
-      effect: "NoSchedule"
-
-recommender:
-  nodeSelector:
-    "kubernetes.azure.com/scalesetpriority": "spot"
-  tolerations:
-    - key: "kubernetes.azure.com/scalesetpriority"
-      operator: "Equal"
-      value: "spot"
-      effect: "NoSchedule"
-
-admissionController:
-  nodeSelector:
-    "kubernetes.azure.com/scalesetpriority": "spot"
-  tolerations:
-    - key: "kubernetes.azure.com/scalesetpriority"
-      operator: "Equal"
-      value: "spot"
-      effect: "NoSchedule"
-
-crds:
-  nodeSelector:
-    "kubernetes.azure.com/scalesetpriority": "spot"
-  tolerations:
-    - key: "kubernetes.azure.com/scalesetpriority"
-      operator: "Equal"
-      value: "spot"
-      effect: "NoSchedule"
-EOF
+    yamlencode({
+      updater = {
+        nodeSelector = var.node_selector
+        tolerations = var.node_selector != null ? [for k, v in var.node_selector : {
+          key      = k
+          operator = "Equal"
+          value    = v
+          effect   = "NoSchedule"
+        }] : []
+      }
+      recommender = {
+        nodeSelector = var.node_selector
+        tolerations = var.node_selector != null ? [for k, v in var.node_selector : {
+          key      = k
+          operator = "Equal"
+          value    = v
+          effect   = "NoSchedule"
+        }] : []
+      }
+      admissionController = {
+        nodeSelector = var.node_selector
+        tolerations = var.node_selector != null ? [for k, v in var.node_selector : {
+          key      = k
+          operator = "Equal"
+          value    = v
+          effect   = "NoSchedule"
+        }] : []
+      }
+      crds = {
+        nodeSelector = var.node_selector
+        tolerations = var.node_selector != null ? [for k, v in var.node_selector : {
+          key      = k
+          operator = "Equal"
+          value    = v
+          effect   = "NoSchedule"
+        }] : []
+      }
+    })
   ]
+
 }

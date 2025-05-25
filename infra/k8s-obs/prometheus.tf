@@ -187,150 +187,173 @@ resource "helm_release" "prometheus" {
   version    = var.prometheus_helmchart_version
 
   values = [
-    <<EOF
-server:
-  resources:
-    limits:
-      cpu: "2"
-      memory: "6Gi"
-  global:
-    external_labels:
-      cluster: main
-  nodeSelector:
-    "kubernetes.azure.com/scalesetpriority": "spot"
-  tolerations:
-    - key: "kubernetes.azure.com/scalesetpriority"
-      operator: "Equal"
-      value: "spot"
-      effect: "NoSchedule"
-  persistentVolume:
-    enabled: true
-    size: 30Gi
-    storageClass: "managed-premium"
-  retention: "12h"
-  extraFlags:
-    - web.enable-remote-write-receiver
-    - web.enable-lifecycle
-  extraArgs:
-    storage.tsdb.min-block-duration: "2h"
-    storage.tsdb.max-block-duration: "2h"
-  sidecarContainers:
-    thanos-sidecar:
-      image: "${var.thanos_sidecar_image}"
-      args:
-        - "sidecar"
-        - "--log.level=info"
-        - "--prometheus.url=http://127.0.0.1:9090"
-        - "--tsdb.path=/data"
-        - "--objstore.config-file=/etc/thanos/objstore.yml"
-      ports:
-        - name: http-sidecar
-          containerPort: 10902
-        - name: grpc
-          containerPort: 10901
-      volumeMounts:
-        - name: storage-volume
-          mountPath: /data
-        - name: thanos-objstore
-          mountPath: /etc/thanos
+    yamlencode({
+      server = {
+        resources = {
+          limits = {
+            cpu    = "2"
+            memory = "6Gi"
+          }
+        }
+        global = {
+          external_labels = {
+            cluster = "main"
+          }
+        }
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+        persistentVolume = {
+          enabled      = true
+          size         = "30Gi"
+          storageClass = "managed-premium"
+        }
+        retention = "12h"
+        extraFlags = [
+          "web.enable-remote-write-receiver",
+          "web.enable-lifecycle"
+        ]
+        extraArgs = {
+          "storage.tsdb.min-block-duration" = "2h"
+          "storage.tsdb.max-block-duration" = "2h"
+        }
+        sidecarContainers = {
+          thanos-sidecar = {
+            image = var.thanos_sidecar_image
+            args = [
+              "sidecar",
+              "--log.level=info",
+              "--prometheus.url=http://127.0.0.1:9090",
+              "--tsdb.path=/data",
+              "--objstore.config-file=/etc/thanos/objstore.yml"
+            ]
+            ports = [
+              { name = "http-sidecar", containerPort = 10902 },
+              { name = "grpc", containerPort = 10901 }
+            ]
+            volumeMounts = [
+              { name = "storage-volume", mountPath = "/data" },
+              { name = "thanos-objstore", mountPath = "/etc/thanos" }
+            ]
+          }
+        }
+        extraVolumeMounts = [
+          { name = "thanos-objstore", mountPath = "/etc/thanos" }
+        ]
+        extraVolumes = [
+          {
+            name = "thanos-objstore"
+            secret = {
+              secretName = "thanos-objstore-secret"
+              items = [
+                { key = "objstore.yml", path = "objstore.yml" }
+              ]
+            }
+          }
+        ]
+        service = {
+          gRPC = {
+            enabled     = true
+            servicePort = 10901
+          }
+        }
+      }
 
-  extraVolumeMounts:
-    - name: thanos-objstore
-      mountPath: /etc/thanos
+      alertmanager = {
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+        persistence = {
+          size = "2Gi"
+        }
+      }
 
-  extraVolumes:
-    - name: thanos-objstore
-      secret:
-        secretName: thanos-objstore-secret
-        items:
-          - key: "objstore.yml"
-            path: "objstore.yml"
-
-  service:
-    gRPC:
-      enabled: true
-      servicePort: 10901
-
-alertmanager:
-
-  nodeSelector:
-    "kubernetes.azure.com/scalesetpriority": "spot"
-  tolerations:
-    - key: "kubernetes.azure.com/scalesetpriority"
-      operator: "Equal"
-      value: "spot"
-      effect: "NoSchedule"
-      
-  persistence:
-    size: 2Gi
-
-kube-state-metrics:
-  enabled: true
-
-  nodeSelector:
-    "kubernetes.azure.com/scalesetpriority": "spot"
-  tolerations:
-    - key: "kubernetes.azure.com/scalesetpriority"
-      operator: "Equal"
-      value: "spot"
-      effect: "NoSchedule"
-
-  rbac:
-    extraRules:
-      - apiGroups: ["autoscaling.k8s.io"]
-        resources: ["verticalpodautoscalers"]
-        verbs: ["list", "watch"]
-
-  prometheus:
-    monitor:
-      enabled: true
-
-  customResourceState:
-    enabled: true
-    config:
-      kind: CustomResourceStateMetrics
-      spec:
-        resources:
-          - groupVersionKind:
-              group: autoscaling.k8s.io
-              kind: "VerticalPodAutoscaler"
-              version: "v1"
-            labelsFromPath:
-              verticalpodautoscaler: [metadata, name]
-              namespace: [metadata, namespace]
-              target_api_version: [apiVersion]
-              target_kind: [spec, targetRef, kind]
-              target_name: [spec, targetRef, name]
-            metrics:
-              - name: "vpa_containerrecommendations_target"
-                help: "VPA container recommendations for memory."
-                each:
-                  type: Gauge
-                  gauge:
-                    path: [status, recommendation, containerRecommendations]
-                    valueFrom: [target, memory]
-                    labelsFromPath:
-                      container: [containerName]
-                commonLabels:
-                  resource: "memory"
-                  unit: "byte"
-              - name: "vpa_containerrecommendations_target"
-                help: "VPA container recommendations for cpu."
-                each:
-                  type: Gauge
-                  gauge:
-                    path: [status, recommendation, containerRecommendations]
-                    valueFrom: [target, cpu]
-                    labelsFromPath:
-                      container: [containerName]
-                commonLabels:
-                  resource: "cpu"
-                  unit: "core"
-  selfMonitor:
-    enabled: true
-EOF
+      kube-state-metrics = {
+        enabled      = true
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+        rbac = {
+          extraRules = [
+            {
+              apiGroups = ["autoscaling.k8s.io"]
+              resources = ["verticalpodautoscalers"]
+              verbs     = ["list", "watch"]
+            }
+          ]
+        }
+        prometheus = {
+          monitor = {
+            enabled = true
+          }
+        }
+        customResourceState = {
+          enabled = true
+          config = {
+            kind = "CustomResourceStateMetrics"
+            spec = {
+              resources = [
+                {
+                  groupVersionKind = {
+                    group   = "autoscaling.k8s.io"
+                    version = "v1"
+                    kind    = "VerticalPodAutoscaler"
+                  }
+                  labelsFromPath = {
+                    verticalpodautoscaler = ["metadata", "name"]
+                    namespace             = ["metadata", "namespace"]
+                    target_api_version    = ["apiVersion"]
+                    target_kind           = ["spec", "targetRef", "kind"]
+                    target_name           = ["spec", "targetRef", "name"]
+                  }
+                  metrics = [
+                    {
+                      name = "vpa_containerrecommendations_target"
+                      help = "VPA container recommendations for memory."
+                      each = {
+                        type = "Gauge"
+                        gauge = {
+                          path      = ["status", "recommendation", "containerRecommendations"]
+                          valueFrom = ["target", "memory"]
+                          labelsFromPath = {
+                            container = ["containerName"]
+                          }
+                        }
+                      }
+                      commonLabels = {
+                        resource = "memory"
+                        unit     = "byte"
+                      }
+                    },
+                    {
+                      name = "vpa_containerrecommendations_target"
+                      help = "VPA container recommendations for cpu."
+                      each = {
+                        type = "Gauge"
+                        gauge = {
+                          path      = ["status", "recommendation", "containerRecommendations"]
+                          valueFrom = ["target", "cpu"]
+                          labelsFromPath = {
+                            container = ["containerName"]
+                          }
+                        }
+                      }
+                      commonLabels = {
+                        resource = "cpu"
+                        unit     = "core"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+        selfMonitor = {
+          enabled = true
+        }
+      }
+    })
   ]
 }
+
 
 resource "helm_release" "thanos" {
 
@@ -343,60 +366,47 @@ resource "helm_release" "thanos" {
   version    = var.thanos_helmchart_version
 
   values = [
-    <<EOF
-existingObjstoreSecret: "thanos-objstore-secret"
+    yamlencode({
+      existingObjstoreSecret = "thanos-objstore-secret"
 
-query:
-  enabled: true
-  replicaCount: 1
-  nodeSelector:
-    "kubernetes.azure.com/scalesetpriority": "spot"
-  tolerations:
-    - key: "kubernetes.azure.com/scalesetpriority"
-      operator: "Equal"
-      value: "spot"
-      effect: "NoSchedule"
-  dnsDiscovery:
-    enabled: false
-  stores:
-    - "dns+${local.prometheus_server_service}:10901"
-    - "dns+${local.thanos_store_service}:10901"
+      query = {
+        enabled      = true
+        replicaCount = 1
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+        dnsDiscovery = {
+          enabled = false
+        }
+        stores = [
+          "dns+${local.prometheus_server_service}:10901",
+          "dns+${local.thanos_store_service}:10901"
+        ]
+      }
 
-queryFrontend:
-  enabled: true
-  replicaCount: 1
-  nodeSelector:
-    "kubernetes.azure.com/scalesetpriority": "spot"
-  tolerations:
-    - key: "kubernetes.azure.com/scalesetpriority"
-      operator: "Equal"
-      value: "spot"
-      effect: "NoSchedule"
+      queryFrontend = {
+        enabled      = true
+        replicaCount = 1
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+      }
 
-storegateway:
-  enabled: true
-  replicaCount: 1
-  nodeSelector:
-    "kubernetes.azure.com/scalesetpriority": "spot"
-  tolerations:
-    - key: "kubernetes.azure.com/scalesetpriority"
-      operator: "Equal"
-      value: "spot"
-      effect: "NoSchedule"
+      storegateway = {
+        enabled      = true
+        replicaCount = 1
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+      }
 
-compactor:
-  enabled: true
-  replicaCount: 1
-  nodeSelector:
-    "kubernetes.azure.com/scalesetpriority": "spot"
-  tolerations:
-    - key: "kubernetes.azure.com/scalesetpriority"
-      operator: "Equal"
-      value: "spot"
-      effect: "NoSchedule"
-EOF
+      compactor = {
+        enabled      = true
+        replicaCount = 1
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+      }
+    })
   ]
 }
+
 
 resource "kubernetes_horizontal_pod_autoscaler_v2" "thanos_hpa" {
 
@@ -451,77 +461,80 @@ resource "kubectl_manifest" "thanos_otlp" {
     helm_release.thanos,
   ]
 
-  yaml_body = <<YAML
-apiVersion: opentelemetry.io/v1beta1
-kind: OpenTelemetryCollector
-metadata:
-  name: otlp-thanos
-  namespace: ${kubernetes_namespace.prometheus.metadata[0].name}
-spec:
-  mode: deployment
-
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
-        
-  resources:
-    requests:
-      cpu: "50m"
-      memory: "128Mi"
-    limits:
-      cpu: "500m"
-      memory: "512Mi"
-  config:
-    receivers:
-      prometheus:
-        config:
-          scrape_configs:
-
-            - job_name: "thanos-compactor"
-              scrape_interval: 30s
-              metrics_path: /metrics
-              static_configs:
-                - targets:
-                    - "${local.thanos_compactor_service}:9090"
-
-            - job_name: "thanos-query"
-              scrape_interval: 30s
-              metrics_path: /metrics
-              static_configs:
-                - targets:
-                    - "${local.thanos_query_service}:9090"
-
-            - job_name: "thanos-query-frontend"
-              scrape_interval: 30s
-              metrics_path: /metrics
-              static_configs:
-                - targets:
-                    - "${local.thanos_query_frontend_service}:9090"
-
-            - job_name: "thanos-store"
-              scrape_interval: 30s
-              metrics_path: /metrics
-              static_configs:
-                - targets:
-                    - "${local.thanos_store_service}:9090"
-
-    processors:
-      batch: {}
-    exporters:
-      prometheusremotewrite:
-        endpoint: "http://${local.prometheus_server_service}/api/v1/write"
-    service:
-      pipelines:
-        metrics:
-          receivers: [prometheus]
-          processors: [batch]
-          exporters: [prometheusremotewrite]
-YAML
+  yaml_body = yamlencode({
+    apiVersion = "opentelemetry.io/v1beta1"
+    kind       = "OpenTelemetryCollector"
+    metadata = {
+      name      = "otlp-thanos"
+      namespace = kubernetes_namespace.prometheus.metadata[0].name
+    }
+    spec = {
+      mode         = "deployment"
+      nodeSelector = var.node_selector
+      tolerations  = local.tolerations_from_node_selector
+      resources = {
+        requests = {
+          cpu    = "50m"
+          memory = "128Mi"
+        }
+        limits = {
+          cpu    = "500m"
+          memory = "512Mi"
+        }
+      }
+      config = {
+        receivers = {
+          prometheus = {
+            config = {
+              scrape_configs = [
+                {
+                  job_name        = "thanos-compactor"
+                  scrape_interval = "30s"
+                  metrics_path    = "/metrics"
+                  static_configs  = [{ targets = ["${local.thanos_compactor_service}:9090"] }]
+                },
+                {
+                  job_name        = "thanos-query"
+                  scrape_interval = "30s"
+                  metrics_path    = "/metrics"
+                  static_configs  = [{ targets = ["${local.thanos_query_service}:9090"] }]
+                },
+                {
+                  job_name        = "thanos-query-frontend"
+                  scrape_interval = "30s"
+                  metrics_path    = "/metrics"
+                  static_configs  = [{ targets = ["${local.thanos_query_frontend_service}:9090"] }]
+                },
+                {
+                  job_name        = "thanos-store"
+                  scrape_interval = "30s"
+                  metrics_path    = "/metrics"
+                  static_configs  = [{ targets = ["${local.thanos_store_service}:9090"] }]
+                }
+              ]
+            }
+          }
+        }
+        processors = {
+          batch = {}
+        }
+        exporters = {
+          prometheusremotewrite = {
+            endpoint = "http://${local.prometheus_server_service}/api/v1/write"
+          }
+        }
+        service = {
+          pipelines = {
+            metrics = {
+              receivers  = ["prometheus"]
+              processors = ["batch"]
+              exporters  = ["prometheusremotewrite"]
+            }
+          }
+        }
+      }
+    }
+  })
 
   ignore_fields = [
     "metadata.annotations",

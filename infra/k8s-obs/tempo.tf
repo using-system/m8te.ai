@@ -162,175 +162,165 @@ resource "helm_release" "tempo" {
   version    = var.tempo_helmchart_version
 
   values = [
-    <<EOF
-storage:
-  trace:
-    backend: azure
-    azure:
-      storage_account_name: ${azurerm_storage_account.tempo.name}
-      container_name: ${local.tempo_traces_container_name}
-      use_federated_token: true
+    yamlencode({
+      storage = {
+        trace = {
+          backend = "azure"
+          azure = {
+            storage_account_name = azurerm_storage_account.tempo.name
+            container_name       = local.tempo_traces_container_name
+            use_federated_token  = true
+          }
+        }
+      }
 
-serviceAccount:
-  create: true
-  name: ${local.tempo_service_account_name}
-  automountServiceAccountToken: true
-  annotations:
-    azure.workload.identity/client-id: "${azuread_application.tempo.client_id}"
-    azure.workload.identity/tenant-id: "${data.azurerm_client_config.current.tenant_id}"
-    azure.workload.identity/audience: "api://AzureADTokenExchange"
-  labels:
-    azure.workload.identity/use: "true"
+      serviceAccount = {
+        create                       = true
+        name                         = local.tempo_service_account_name
+        automountServiceAccountToken = true
+        annotations = {
+          "azure.workload.identity/client-id" = azuread_application.tempo.client_id
+          "azure.workload.identity/tenant-id" = data.azurerm_client_config.current.tenant_id
+          "azure.workload.identity/audience"  = "api://AzureADTokenExchange"
+        }
+        labels = {
+          "azure.workload.identity/use" = "true"
+        }
+      }
 
-tempo:
-  podLabels:
-    azure.workload.identity/use: "true"
-  memberlist:
-    appProtocol: "tcp"
+      tempo = {
+        podLabels = {
+          "azure.workload.identity/use" = "true"
+        }
+        memberlist = {
+          appProtocol = "tcp"
+        }
+      }
 
-traces:
-  otlp:
-    grpc:
-      enabled: true
+      traces = {
+        otlp = {
+          grpc = {
+            enabled = true
+          }
+        }
+      }
 
-ingester:
-  appProtocol:
-    grpc: "tcp"
-  extraEnv:
-    - name: GOMEMLIMIT
-      value: "3GiB"
-    - name: GOGC
-      value: "100"
-  resources:
-    requests:
-      cpu: "500m"
-      memory: "2Gi"
-    limits:
-      cpu: "1"
-      memory: "4Gi"
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
+      ingester = {
+        appProtocol = {
+          grpc = "tcp"
+        }
+        extraEnv = [
+          { name = "GOMEMLIMIT", value = "3GiB" },
+          { name = "GOGC", value = "100" }
+        ]
+        resources = {
+          requests = {
+            cpu    = "500m"
+            memory = "2Gi"
+          }
+          limits = {
+            cpu    = "1"
+            memory = "4Gi"
+          }
+        }
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+        podAnnotations = {
+          "traffic.sidecar.istio.io/excludeOutboundPorts" = "9095"
+          "traffic.sidecar.istio.io/excludeInboundPorts"  = "9095"
+        }
+      }
 
-  podAnnotations:
-    traffic.sidecar.istio.io/excludeOutboundPorts: "9095"
-    traffic.sidecar.istio.io/excludeInboundPorts: "9095"
+      distributor = {
+        appProtocol = {
+          grpc = "tcp"
+        }
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+        podAnnotations = {
+          "traffic.sidecar.istio.io/excludeOutboundPorts" = "9095"
+          "traffic.sidecar.istio.io/excludeInboundPorts"  = "9095"
+        }
+      }
 
+      compactor = {
+        appProtocol = {
+          grpc = "tcp"
+        }
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+        podAnnotations = {
+          "traffic.sidecar.istio.io/excludeOutboundPorts" = "9095"
+          "traffic.sidecar.istio.io/excludeInboundPorts"  = "9095"
+        }
+      }
 
+      querier = {
+        appProtocol = {
+          grpc = "tcp"
+        }
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+        podAnnotations = {
+          "traffic.sidecar.istio.io/excludeOutboundPorts" = "9095"
+          "traffic.sidecar.istio.io/excludeInboundPorts"  = "9095"
+        }
+      }
 
-distributor:
-  appProtocol:
-    grpc: "tcp"
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
+      queryFrontend = {
+        appProtocol = {
+          grpc = "tcp"
+        }
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+        podAnnotations = {
+          "traffic.sidecar.istio.io/excludeOutboundPorts" = "9095"
+          "traffic.sidecar.istio.io/excludeInboundPorts"  = "9095"
+        }
+      }
 
-  podAnnotations:
-    traffic.sidecar.istio.io/excludeOutboundPorts: "9095"
-    traffic.sidecar.istio.io/excludeInboundPorts: "9095"
+      gateway = {
+        enabled      = true
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+        podAnnotations = {
+          "traffic.sidecar.istio.io/excludeOutboundPorts" = "9095"
+          "traffic.sidecar.istio.io/excludeInboundPorts"  = "9095"
+        }
+      }
 
-compactor:
-  appProtocol:
-    grpc: "tcp"
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
+      metricsGenerator = {
+        enabled = true
+        config = {
+          remote_write = [
+            {
+              name           = "prometheus"
+              url            = "http://${local.prometheus_server_service}/api/v1/write"
+              send_exemplars = true
+            }
+          ]
+        }
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+        podAnnotations = {
+          "traffic.sidecar.istio.io/excludeOutboundPorts" = "9095"
+          "traffic.sidecar.istio.io/excludeInboundPorts"  = "9095"
+        }
+      }
 
-  podAnnotations:
-    traffic.sidecar.istio.io/excludeOutboundPorts: "9095"
-    traffic.sidecar.istio.io/excludeInboundPorts: "9095"
+      memcached = {
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+      }
 
-querier:
-  appProtocol:
-    grpc: "tcp"
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
+      minio = {
+        enabled = false
+      }
 
-  podAnnotations:
-    traffic.sidecar.istio.io/excludeOutboundPorts: "9095"
-    traffic.sidecar.istio.io/excludeInboundPorts: "9095"
-
-queryFrontend:
-  appProtocol:
-    grpc: "tcp"
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
-  podAnnotations:
-    traffic.sidecar.istio.io/excludeOutboundPorts: "9095"
-    traffic.sidecar.istio.io/excludeInboundPorts: "9095"
-
-gateway:
-  enabled: true
-
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
-  podAnnotations:
-    traffic.sidecar.istio.io/excludeOutboundPorts: "9095"
-    traffic.sidecar.istio.io/excludeInboundPorts: "9095"
-
-metricsGenerator:
-  enabled: true
-  config:
-    remote_write:
-      - name: prometheus
-        url: "http://${local.prometheus_server_service}/api/v1/write"
-        send_exemplars: true
-
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
-
-  podAnnotations:
-    traffic.sidecar.istio.io/excludeOutboundPorts: "9095"
-    traffic.sidecar.istio.io/excludeInboundPorts: "9095"
-
-memcached:
-
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
-
-minio:
-  enabled: false
-
-adminApi:
-  enabled: false
-EOF
+      adminApi = {
+        enabled = false
+      }
+    })
   ]
 }
 
@@ -340,84 +330,96 @@ resource "kubectl_manifest" "tempo_otlp" {
     kubernetes_manifest.tempo_peer_authentication
   ]
 
-  yaml_body = <<YAML
-apiVersion: opentelemetry.io/v1beta1
-kind: OpenTelemetryCollector
-metadata:
-  name: otlp-tempo
-  namespace: ${kubernetes_namespace.tempo.metadata[0].name}
-spec:
-  mode: deployment
-
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
-        
-  resources:
-    requests:
-      cpu: "50m"
-      memory: "128Mi"
-    limits:
-      cpu: "500m"
-      memory: "512Mi"
-  config:
-    receivers:
-      prometheus:
-        config:
-          scrape_configs:
-
-            - job_name: "tempo-compactor"
-              scrape_interval: 30s
-              metrics_path: /metrics
-              static_configs:
-                - targets:
-                    - "${local.tempo_compactor_service}:3100"
-
-            - job_name: "tempo-distributor"
-              scrape_interval: 30s
-              metrics_path: /metrics
-              static_configs:
-                - targets:
-                    - "${local.tempo_distributor_service}:3100"
-
-            - job_name: "tempo-ingester"
-              scrape_interval: 30s
-              metrics_path: /metrics
-              static_configs:
-                - targets:
-                    - "${local.tempo_ingester_service}:3100"
-
-            - job_name: "tempo-querier"
-              scrape_interval: 30s
-              metrics_path: /metrics
-              static_configs:
-                - targets:
-                    - "${local.tempo_querier_service}:3100"
-
-            - job_name: "tempo-query-frontend"
-              scrape_interval: 30s
-              metrics_path: /metrics
-              static_configs:
-                - targets:
-                    - "${local.tempo_query_frontend_service}:3100"
-
-    processors:
-      batch: {}
-    exporters:
-      prometheusremotewrite:
-        endpoint: "http://${local.prometheus_server_service}/api/v1/write"
-    service:
-      pipelines:
-        metrics:
-          receivers: [prometheus]
-          processors: [batch]
-          exporters: [prometheusremotewrite]
-YAML
+  yaml_body = yamlencode({
+    apiVersion = "opentelemetry.io/v1beta1"
+    kind       = "OpenTelemetryCollector"
+    metadata = {
+      name      = "otlp-tempo"
+      namespace = kubernetes_namespace.tempo.metadata[0].name
+    }
+    spec = {
+      mode         = "deployment"
+      nodeSelector = var.node_selector
+      tolerations  = local.tolerations_from_node_selector
+      resources = {
+        requests = {
+          cpu    = "50m"
+          memory = "128Mi"
+        }
+        limits = {
+          cpu    = "500m"
+          memory = "512Mi"
+        }
+      }
+      config = {
+        receivers = {
+          prometheus = {
+            config = {
+              scrape_configs = [
+                {
+                  job_name        = "tempo-compactor"
+                  scrape_interval = "30s"
+                  metrics_path    = "/metrics"
+                  static_configs = [
+                    { targets = ["${local.tempo_compactor_service}:3100"] }
+                  ]
+                },
+                {
+                  job_name        = "tempo-distributor"
+                  scrape_interval = "30s"
+                  metrics_path    = "/metrics"
+                  static_configs = [
+                    { targets = ["${local.tempo_distributor_service}:3100"] }
+                  ]
+                },
+                {
+                  job_name        = "tempo-ingester"
+                  scrape_interval = "30s"
+                  metrics_path    = "/metrics"
+                  static_configs = [
+                    { targets = ["${local.tempo_ingester_service}:3100"] }
+                  ]
+                },
+                {
+                  job_name        = "tempo-querier"
+                  scrape_interval = "30s"
+                  metrics_path    = "/metrics"
+                  static_configs = [
+                    { targets = ["${local.tempo_querier_service}:3100"] }
+                  ]
+                },
+                {
+                  job_name        = "tempo-query-frontend"
+                  scrape_interval = "30s"
+                  metrics_path    = "/metrics"
+                  static_configs = [
+                    { targets = ["${local.tempo_query_frontend_service}:3100"] }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+        processors = {
+          batch = {}
+        }
+        exporters = {
+          prometheusremotewrite = {
+            endpoint = "http://${local.prometheus_server_service}/api/v1/write"
+          }
+        }
+        service = {
+          pipelines = {
+            metrics = {
+              receivers  = ["prometheus"]
+              processors = ["batch"]
+              exporters  = ["prometheusremotewrite"]
+            }
+          }
+        }
+      }
+    }
+  })
 
   ignore_fields = [
     "metadata.annotations",

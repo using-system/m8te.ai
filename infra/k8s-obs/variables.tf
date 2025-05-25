@@ -55,6 +55,11 @@ variable "aks_resource_group_name" {
 # Kubernetes Variables
 #------------------------------------------------------------------------------
 
+variable "node_selector" {
+  description = "Node selector for Kubernetes deployment"
+  type        = map(string)
+}
+
 variable "ingress_prefix" {
   description = "Ingress prefix"
 }

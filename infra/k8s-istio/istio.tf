@@ -14,6 +14,8 @@ module "istio_tls_csi" {
   project_name  = var.project_name
   k8s_namespace = kubernetes_namespace.istio.metadata[0].name
 
+  node_selector = var.node_selector
+
   workload_identity_oidc_issuer_url = data.azurerm_kubernetes_cluster.m8t.oidc_issuer_url
 
   entra_tenant_id = data.azurerm_client_config.current.tenant_id
@@ -50,18 +52,18 @@ resource "helm_release" "istio_system" {
   create_namespace = false
   namespace        = kubernetes_namespace.istio.metadata[0].name
   values = [
-    <<EOF
-nodeSelector:
-  "kubernetes.azure.com/scalesetpriority": "spot"
-tolerations:
-  - key: "kubernetes.azure.com/scalesetpriority"
-    operator: "Equal"
-    value: "spot"
-    effect: "NoSchedule"
-autoscaleEnabled: true
-autoscaleMin: 2
-autoscaleMax: 6
-EOF
+    yamlencode({
+      nodeSelector = var.node_selector
+      tolerations = var.node_selector != null ? [for k, v in var.node_selector : {
+        key      = k
+        operator = "Equal"
+        value    = v
+        effect   = "NoSchedule"
+      }] : []
+      autoscaleEnabled = true
+      autoscaleMin     = 2
+      autoscaleMax     = 6
+    })
   ]
 }
 

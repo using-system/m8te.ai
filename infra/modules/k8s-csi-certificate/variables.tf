@@ -42,3 +42,9 @@ variable "certificate_content_type" {
   type        = string
   default     = "application/x-pkcs12"
 }
+
+variable "node_selector" {
+  description = "Node selector for Kubernetes deployment"
+  type        = map(string)
+  nullable    = true
+}

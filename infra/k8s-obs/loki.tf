@@ -173,210 +173,182 @@ resource "helm_release" "loki" {
   version    = var.loki_helmchart_version
 
   values = [
-    <<EOF
-loki:
-  appProtocol:
-    grpc: "tcp"
-  podLabels:
-    azure.workload.identity/use: "true"
-  schemaConfig:
-    configs:
-      - from: "2024-04-01"
-        store: tsdb
-        object_store: azure
-        schema: v13
-        index:
-          prefix: loki_index_
-          period: 24h
-  storage_config:
-    azure:
-      account_name: ${azurerm_storage_account.loki.name}
-      container_name: ${local.loki_storage_chunk_container_name}
-      use_federated_token: true
-  ingester:
-    chunk_encoding: snappy
-  pattern_ingester:
-    enabled: true
-  limits_config:
-    allow_structured_metadata: true
-    volume_enabled: true
-    retention_period: 672h
-  compactor:
-    retention_enabled: true
-    delete_request_store: azure
-  querier:
-    max_concurrent: 3
-  storage:
-    type: azure
-    bucketNames:
-      chunks: ${local.loki_storage_chunk_container_name}
-      ruler: ${local.loki_storage_ruler_container_name}
-    azure:
-      account_name: ${azurerm_storage_account.loki.name}
-      use_federated_token: true
+    yamlencode({
+      loki = {
+        appProtocol = { grpc = "tcp" }
+        podLabels = {
+          "azure.workload.identity/use" = "true"
+        }
+        schemaConfig = {
+          configs = [{
+            from         = "2024-04-01"
+            store        = "tsdb"
+            object_store = "azure"
+            schema       = "v13"
+            index = {
+              prefix = "loki_index_"
+              period = "24h"
+            }
+          }]
+        }
+        storage_config = {
+          azure = {
+            account_name        = azurerm_storage_account.loki.name
+            container_name      = local.loki_storage_chunk_container_name
+            use_federated_token = true
+          }
+        }
+        ingester = {
+          chunk_encoding = "snappy"
+        }
+        pattern_ingester = {
+          enabled = true
+        }
+        limits_config = {
+          allow_structured_metadata = true
+          volume_enabled            = true
+          retention_period          = "672h"
+        }
+        compactor = {
+          retention_enabled    = true
+          delete_request_store = "azure"
+        }
+        querier = {
+          max_concurrent = 3
+        }
+        storage = {
+          type = "azure"
+          bucketNames = {
+            chunks = local.loki_storage_chunk_container_name
+            ruler  = local.loki_storage_ruler_container_name
+          }
+          azure = {
+            account_name        = azurerm_storage_account.loki.name
+            use_federated_token = true
+          }
+        }
+      }
 
-serviceAccount:
-  name: ${local.loki_service_account_name}
-  annotations:
-    azure.workload.identity/client-id: "${azuread_application.loki.client_id}"
-  labels:
-    azure.workload.identity/use: "true"
+      serviceAccount = {
+        name = local.loki_service_account_name
+        annotations = {
+          "azure.workload.identity/client-id" = azuread_application.loki.client_id
+        }
+        labels = {
+          "azure.workload.identity/use" = "true"
+        }
+      }
 
-deploymentMode: Distributed
+      deploymentMode = "Distributed"
 
-ingester:
-  appProtocol:
-    grpc: "tcp"
-  replicas: 3
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
-  zoneAwareReplication:
-    enabled: false
+      ingester = {
+        appProtocol          = { grpc = "tcp" }
+        replicas             = 3
+        nodeSelector         = var.node_selector
+        tolerations          = local.tolerations_from_node_selector
+        zoneAwareReplication = { enabled = false }
+      }
 
-querier:
-  appProtocol:
-    grpc: "tcp"
-  replicas: 3
-  maxUnavailable: 2
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
+      querier = {
+        appProtocol    = { grpc = "tcp" }
+        replicas       = 3
+        maxUnavailable = 2
+        nodeSelector   = var.node_selector
+        tolerations    = local.tolerations_from_node_selector
+      }
 
-queryFrontend:
-  appProtocol:
-    grpc: "tcp"
-  replicas: 3
-  maxUnavailable: 1
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
+      queryFrontend = {
+        appProtocol    = { grpc = "tcp" }
+        replicas       = 3
+        maxUnavailable = 1
+        nodeSelector   = var.node_selector
+        tolerations    = local.tolerations_from_node_selector
+      }
 
-queryScheduler:
-  appProtocol:
-    grpc: "tcp"
-  replicas: 1
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
+      queryScheduler = {
+        appProtocol  = { grpc = "tcp" }
+        replicas     = 1
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+      }
 
-distributor:
-  appProtocol:
-    grpc: "tcp"
-  replicas: 3
-  maxUnavailable: 2
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
+      distributor = {
+        appProtocol    = { grpc = "tcp" }
+        replicas       = 3
+        maxUnavailable = 2
+        nodeSelector   = var.node_selector
+        tolerations    = local.tolerations_from_node_selector
+      }
 
-compactor:
-  appProtocol:
-    grpc: "tcp"
-  replicas: 1
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
+      compactor = {
+        appProtocol  = { grpc = "tcp" }
+        replicas     = 1
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+      }
 
-indexGateway:
-  appProtocol:
-    grpc: "tcp"
-  replicas: 4
-  maxUnavailable: 1
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
+      indexGateway = {
+        appProtocol    = { grpc = "tcp" }
+        replicas       = 4
+        maxUnavailable = 1
+        nodeSelector   = var.node_selector
+        tolerations    = local.tolerations_from_node_selector
+      }
 
-ruler:
-  enabled: false
+      ruler = {
+        enabled = false
+      }
 
-gateway:
-  enabled: true
-  replicas: 4
+      gateway = {
+        enabled  = true
+        replicas = 4
+        service = {
+          type = "ClusterIP"
+        }
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+      }
 
-  service:
-    type: ClusterIP
+      lokiCanary = {
+        enabled      = true
+        push         = true
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+      }
 
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
+      chunksCache = {
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+      }
 
-lokiCanary:
-  enabled: true
-  push: true
+      resultsCache = {
+        nodeSelector = var.node_selector
+        tolerations  = local.tolerations_from_node_selector
+      }
 
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
+      minio = {
+        enabled = false
+      }
 
-chunksCache:
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
+      backend = {
+        replicas = 0
+      }
 
-resultsCache:
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
+      read = {
+        replicas = 0
+      }
 
-minio:
-  enabled: false
+      write = {
+        replicas = 0
+      }
 
-backend:
-  replicas: 0
-read:
-  replicas: 0
-write:
-  replicas: 0
-
-singleBinary:
-  replicas: 0
-EOF
+      singleBinary = {
+        replicas = 0
+      }
+    })
   ]
 }
+
 
 resource "helm_release" "promtail" {
   depends_on = [
@@ -390,41 +362,70 @@ resource "helm_release" "promtail" {
   version    = var.promtail_helmchart_version
 
   values = [
-    <<EOF
-extraVolumes:
-  - name: positions
-    emptyDir: {}
-extraVolumeMounts:
-  - name: positions
-    mountPath: /tmp/promtail
-config:
-  clients:
-    - url: http://${local.loki_gateway_service}/loki/api/v1/push
-      tenant_id: default
-  positions:
-    filename: /tmp/promtail/positions.yaml
-  scrape_configs:
-    - job_name: kubernetes-pods
-      kubernetes_sd_configs:
-        - role: pod
-      relabel_configs:
-        - source_labels: [__meta_kubernetes_pod_label_app]
-          target_label: job
-        - action: labelmap
-          regex: __meta_kubernetes_pod_label_(.+)
-        - source_labels: [__meta_kubernetes_namespace]
-          target_label: namespace
-        - source_labels: [__meta_kubernetes_pod_name]
-          target_label: pod
-tolerations:
-  - key: kubernetes.azure.com/scalesetpriority
-    operator: Equal
-    value: spot
-    effect: NoSchedule
-  - key: CriticalAddonsOnly
-    operator: Exists
-    effect: NoSchedule
-EOF
+    yamlencode({
+      extraVolumes = [
+        {
+          name     = "positions"
+          emptyDir = {}
+        }
+      ]
+
+      extraVolumeMounts = [
+        {
+          name      = "positions"
+          mountPath = "/tmp/promtail"
+        }
+      ]
+
+      config = {
+        clients = [
+          {
+            url       = "http://${local.loki_gateway_service}/loki/api/v1/push"
+            tenant_id = "default"
+          }
+        ]
+        positions = {
+          filename = "/tmp/promtail/positions.yaml"
+        }
+        scrape_configs = [
+          {
+            job_name = "kubernetes-pods"
+            kubernetes_sd_configs = [
+              { role = "pod" }
+            ]
+            relabel_configs = [
+              {
+                source_labels = ["__meta_kubernetes_pod_label_app"]
+                target_label  = "job"
+              },
+              {
+                action = "labelmap"
+                regex  = "__meta_kubernetes_pod_label_(.+)"
+              },
+              {
+                source_labels = ["__meta_kubernetes_namespace"]
+                target_label  = "namespace"
+              },
+              {
+                source_labels = ["__meta_kubernetes_pod_name"]
+                target_label  = "pod"
+              }
+            ]
+          }
+        ]
+      }
+
+      tolerations = concat(
+        local.tolerations_from_node_selector,
+        [
+          {
+            key      = "CriticalAddonsOnly"
+            operator = "Exists"
+            effect   = "NoSchedule"
+          }
+        ]
+      )
+    })
   ]
 }
 
@@ -434,83 +435,96 @@ resource "kubectl_manifest" "loki_otlp" {
     kubernetes_manifest.loki_peer_authentication
   ]
 
-  yaml_body = <<YAML
-apiVersion: opentelemetry.io/v1beta1
-kind: OpenTelemetryCollector
-metadata:
-  name: otlp-loki
-  namespace: ${kubernetes_namespace.loki.metadata[0].name}
-spec:
-  mode: deployment
-
-  nodeSelector:
-    kubernetes.azure.com/scalesetpriority: spot
-
-  tolerations:
-    - key: kubernetes.azure.com/scalesetpriority
-      operator: Equal
-      value: spot
-      effect: NoSchedule
-        
-  resources:
-    requests:
-      cpu: "50m"
-      memory: "128Mi"
-    limits:
-      cpu: "500m"
-      memory: "512Mi"
-  config:
-    receivers:
-      prometheus:
-        config:
-          scrape_configs:
-            - job_name: "loki-canary"
-              scrape_interval: 30s
-              metrics_path: /metrics
-              static_configs:
-                - targets:
-                    - "${local.loki_canary_service}:3500"
-
-            - job_name: "loki-distributor"
-              scrape_interval: 30s
-              metrics_path: /metrics
-              static_configs:
-                - targets:
-                    - "${local.loki_distributor_service}:3100"
-
-            - job_name: "loki-ingester"
-              scrape_interval: 30s
-              metrics_path: /metrics
-              static_configs:
-                - targets:
-                    - "${local.loki_ingester_service}:3100"
-
-            - job_name: "loki-querier"
-              scrape_interval: 30s
-              metrics_path: /metrics
-              static_configs:
-                - targets:
-                    - "${local.loki_querier_service}:3100"
-
-            - job_name: "loki-query-frontend"
-              scrape_interval: 30s
-              metrics_path: /metrics
-              static_configs:
-                - targets:
-                    - "${local.loki_query_frontend_service}:3100"
-
-    processors:
-      batch: {}
-    exporters:
-      prometheusremotewrite:
-        endpoint: "http://${local.prometheus_server_service}/api/v1/write"
-    service:
-      pipelines:
-        metrics:
-          receivers: [prometheus]
-          processors: [batch]
-          exporters: [prometheusremotewrite]
-YAML
+  yaml_body = yamlencode({
+    apiVersion = "opentelemetry.io/v1beta1"
+    kind       = "OpenTelemetryCollector"
+    metadata = {
+      name      = "otlp-loki"
+      namespace = kubernetes_namespace.loki.metadata[0].name
+    }
+    spec = {
+      mode         = "deployment"
+      nodeSelector = var.node_selector
+      tolerations  = local.tolerations_from_node_selector
+      resources = {
+        requests = {
+          cpu    = "50m"
+          memory = "128Mi"
+        }
+        limits = {
+          cpu    = "500m"
+          memory = "512Mi"
+        }
+      }
+      config = {
+        receivers = {
+          prometheus = {
+            config = {
+              scrape_configs = [
+                {
+                  job_name        = "loki-canary"
+                  scrape_interval = "30s"
+                  metrics_path    = "/metrics"
+                  static_configs = [
+                    { targets = ["${local.loki_canary_service}:3500"] }
+                  ]
+                },
+                {
+                  job_name        = "loki-distributor"
+                  scrape_interval = "30s"
+                  metrics_path    = "/metrics"
+                  static_configs = [
+                    { targets = ["${local.loki_distributor_service}:3100"] }
+                  ]
+                },
+                {
+                  job_name        = "loki-ingester"
+                  scrape_interval = "30s"
+                  metrics_path    = "/metrics"
+                  static_configs = [
+                    { targets = ["${local.loki_ingester_service}:3100"] }
+                  ]
+                },
+                {
+                  job_name        = "loki-querier"
+                  scrape_interval = "30s"
+                  metrics_path    = "/metrics"
+                  static_configs = [
+                    { targets = ["${local.loki_querier_service}:3100"] }
+                  ]
+                },
+                {
+                  job_name        = "loki-query-frontend"
+                  scrape_interval = "30s"
+                  metrics_path    = "/metrics"
+                  static_configs = [
+                    { targets = ["${local.loki_query_frontend_service}:3100"] }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+        processors = {
+          batch = {}
+        }
+        exporters = {
+          prometheusremotewrite = {
+            endpoint = "http://${local.prometheus_server_service}/api/v1/write"
+          }
+        }
+        service = {
+          pipelines = {
+            metrics = {
+              receivers  = ["prometheus"]
+              processors = ["batch"]
+              exporters  = ["prometheusremotewrite"]
+            }
+          }
+        }
+      }
+    }
+  })
 
   ignore_fields = [
     "metadata.annotations",
@@ -520,4 +534,3 @@ YAML
     "spec",
   ]
 }
-
