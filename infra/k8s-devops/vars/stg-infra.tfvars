@@ -9,9 +9,7 @@ tags = {
 }
 
 #------------------------------------------------------------------------------
-# Kubernetes Variables
+# GITHUB RUNNER Variables
 #------------------------------------------------------------------------------
 
-node_selector = {
-  "kubernetes.azure.com/scalesetpriority" = "spot"
-}
+gh_runner_labels = "m8t,stg-infra,dev-app,prd-app"

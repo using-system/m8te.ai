@@ -14,6 +14,8 @@ module "landingapp" {
   workload_identity_oidc_issuer_url = data.azurerm_kubernetes_cluster.m8t.oidc_issuer_url
   environment                       = var.env
 
+  node_selector = var.node_selector
+
   resource_requests = var.resources.landingapp.requests
   resource_limits   = var.resources.landingapp.limits
 

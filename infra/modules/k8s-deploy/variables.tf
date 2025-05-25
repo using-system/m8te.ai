@@ -154,3 +154,15 @@ variable "max_replicas" {
   type        = number
   default     = 8
 }
+
+variable "run_as_root" {
+  description = "Run the container as root"
+  type        = bool
+  default     = false
+}
+
+variable "node_selector" {
+  description = "Node selector for Kubernetes deployment"
+  type        = map(string)
+  nullable    = true
+}

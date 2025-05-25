@@ -4,14 +4,12 @@
 
 tags = {
   project       = "m8t"
-  env           = "stg-infra"
+  env           = "prd-infra"
   provisionedby = "terraform"
 }
 
 #------------------------------------------------------------------------------
-# Kubernetes Variables
+# GITHUB RUNNER Variables
 #------------------------------------------------------------------------------
 
-node_selector = {
-  "kubernetes.azure.com/scalesetpriority" = "spot"
-}
+gh_runner_labels = "m8t,prd-infra,dev-app,prd-app"

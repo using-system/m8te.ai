@@ -61,6 +61,11 @@ variable "host_prefix" {
   description = "The prefix for the hostnames"
 }
 
+variable "node_selector" {
+  description = "Node selector for Kubernetes deployment"
+  type        = map(string)
+}
+
 variable "resources" {
   description = "Resource requests and limits for the deployments"
   type = map(object({

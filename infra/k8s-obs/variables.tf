@@ -102,5 +102,5 @@ variable "tempo_helmchart_version" {
 
 variable "pyroscope_helmchart_version" {
   description = "Pyroscope Helm Chart Version"
-  default     = "1.13.1"
+  default     = "1.13.4"
 }
