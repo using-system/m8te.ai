@@ -52,22 +52,42 @@ variable "aks_resource_group_name" {
 }
 
 #------------------------------------------------------------------------------
+# Helm Chart Variables
+#------------------------------------------------------------------------------
+
+variable "gha_runner_scale_set_controller_helmchart_version" {
+  description = "GitHub Actions Runner Scale Set Controller Helm Chart Version"
+  default     = "0.11.0"
+}
+
+variable "gha_runner_scale_set_helmchart_version" {
+  description = "GitHub Actions Runner Scale Set Helm Chart Version"
+  default     = "0.11.0"
+}
+
+
+#------------------------------------------------------------------------------
 # GITHUB RUNNER Variables
 #------------------------------------------------------------------------------
 
-variable "gh_runner_image" {
-  description = "GitHub Runner Image"
-  default     = "myoung34/github-runner:2.324.0@sha256:59a814bb19d519f6db2f410d9955ff8eeed5cbfbaa370ef1dd5148f241dfd8fc"
-}
-
 variable "gh_runner_app_id" {
   description = "GitHub Runner App ID"
+}
+
+variable "gh_runner_app_installation_id" {
+  description = "GitHub Runner App Installation ID"
 }
 
 variable "gh_runner_app_private_key" {
   description = "GitHub Runner App Private Key"
 }
 
-variable "gh_runner_labels" {
-  description = "GitHub Runner App Private Key"
+variable "gh_runner_repo_url" {
+  description = "GitHub Repository URL"
+  default     = "https://github.com/using-system/m8te.ai"
+}
+
+variable "gh_runner_image" {
+  description = "GitHub Runner Image"
+  default     = "m8thubinfraweacr.azurecr.io/github-actions-runner:2025-1"
 }
