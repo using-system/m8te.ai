@@ -38,6 +38,7 @@ jobs:
         azure_subscription_id
         azure_tenant_id
         gh_runner_app_id
+        gh_runner_app_installation_id
         gh_runner_app_private_key
-      private-runner: true
+      private-runner: "arc-${{ matrix.env.name }}-runners"
     secrets: inherit

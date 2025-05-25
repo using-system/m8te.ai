@@ -13,6 +13,9 @@ on:
           required: true
           type: string
         namespace:
+          required: true
+          type: string
+        private-runner:
           required: false
           type: string
         aks-cluster-name:
@@ -29,20 +32,19 @@ permissions:
 jobs:
   k8s-deploy-image:
     environment: ${{ inputs.environment }}
-    runs-on:
-      labels: ${{ inputs.environment}}
+    runs-on: ${{ inputs.private-runner }}
     steps:
+
     - name: "Login via Azure CLI"
       uses: azure/login@v2
       with:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
+  
     - id: kubeconfig
       name: "Create kubeconfig file"
       run: |
-          az aks install-cli
           az aks get-credentials --resource-group $AKS_RESOURCE_GROUP --name $AKS_CLUSTER_NAME --overwrite-existing
           kubelogin convert-kubeconfig -l azurecli
       env:

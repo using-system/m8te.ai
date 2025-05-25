@@ -35,5 +35,5 @@ jobs:
       vars: |
         azure_subscription_id
         azure_tenant_id
-      private-runner: true
+      private-runner: "arc-${{ matrix.env.name }}-runners"
     secrets: inherit

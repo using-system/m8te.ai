@@ -56,9 +56,14 @@ variable "gh_aca_runner_enable" {
   default     = true
 }
 
+variable "gh_runner_repo_url" {
+  description = "GitHub Repository URL"
+  default     = "https://github.com/using-system/m8te.ai"
+}
+
 variable "gh_runner_image" {
   description = "GitHub Runner Image"
-  default     = "myoung34/github-runner:2.324.0@sha256:59a814bb19d519f6db2f410d9955ff8eeed5cbfbaa370ef1dd5148f241dfd8fc"
+  default     = "m8thubinfraweacr.azurecr.io/github-myoung34-runner:latest"
 }
 
 variable "gh_runner_app_id" {

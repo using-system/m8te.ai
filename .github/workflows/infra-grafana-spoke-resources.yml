@@ -37,5 +37,5 @@ jobs:
         azure_tenant_id
         grafana_uri
         grafana_auth
-      private-runner: false
+      private-runner: "arc-${{ matrix.env.name }}-runners"
     secrets: inherit
