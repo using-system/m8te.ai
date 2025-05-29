@@ -112,4 +112,4 @@ vnet_subnets = {
 #------------------------------------------------------------------------------
 
 gh_aca_runner_enable = false
-gh_runner_labels     = "m8t,prd-infra,dev-app,prd-app"
+gh_runner_labels     = "arc-prd-infra-runners"

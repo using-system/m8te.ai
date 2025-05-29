@@ -7,9 +7,3 @@ tags = {
   env           = "prd-infra"
   provisionedby = "terraform"
 }
-
-#------------------------------------------------------------------------------
-# GITHUB RUNNER Variables
-#------------------------------------------------------------------------------
-
-gh_runner_labels = "m8t,prd-infra,dev-app,prd-app"
