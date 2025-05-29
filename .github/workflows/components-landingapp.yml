@@ -65,6 +65,7 @@ jobs:
       namespace: "m8t-${{ matrix.env.name }}"
       app-name: "m8t-landing-app"
       image: ${{ needs.docker.outputs.image_name }}
+      private-runner: "arc-${{ matrix.env.infra}}-runners"
       aks-cluster-name: "m8t-aks"
       aks-resource-group: "m8t-${{ matrix.env.infra }}-we-aks"    
     secrets: inherit

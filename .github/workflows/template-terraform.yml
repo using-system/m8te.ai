@@ -25,9 +25,9 @@ on:
         type: string
         default: ''
       private-runner:
-        required: false
-        type: boolean
-        default: false
+          required: false
+          type: string
+          default: ""
 
 permissions:
   contents: write
@@ -40,29 +40,6 @@ env:
   ARM_USE_OIDC: "true"
 
 jobs:
-
-  setup:
-    runs-on: ubuntu-24.04
-    outputs:
-      runner-config: ${{ steps.determine-config.outputs.runner-config }}
-    steps:
-    - name: Determine runs-on config
-      id: determine-config
-      run: |
-        if [ "$PRIVATE_RUNNER" == "true" ]; then
-          echo "Using custom configuration"
-          labels=$(echo "\"${ENVIRONMENT}\", \"m8t\"")
-          runner_desc=$(echo "{\"labels\":[$labels]}") 
-          config=$(echo $runner_desc | jq -c '.')
-          echo "runner-config=$config"
-          echo "runner-config=$config" >> $GITHUB_OUTPUT
-        else
-          echo "Using ubuntu-24.04"
-          echo "runner-config=ubuntu-24.04" >> $GITHUB_OUTPUT
-        fi
-      env:
-        PRIVATE_RUNNER: ${{ inputs.private-runner }}
-        REPO_ENV: ${{ inputs.environment }}
 
   analyze:
     runs-on: ubuntu-24.04
@@ -81,6 +58,20 @@ jobs:
         with:
           terraform_version: 'latest'
           terraform_wrapper: false
+
+      - name: Configure Terraform plugin cache
+        run: |
+          echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >>"$GITHUB_ENV"
+          mkdir --parents "$HOME/.terraform.d/plugin-cache"
+      
+      - name: Restore Terraform provider cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.terraform.d/plugin-cache
+          key: ${{ runner.os }}-terraform-${{ inputs.working-dir }}-${{ hashFiles(format('{0}/backend.tf', inputs.working-dir)) }}
+          restore-keys: |
+            ${{ runner.os }}-terraform-${{ inputs.working-dir }}-
+            ${{ runner.os }}-terraform-
 
       - name: Terraform Fmt
         run: terraform fmt -recursive -check
@@ -103,34 +94,29 @@ jobs:
           
   plan:
     environment: plan-${{ inputs.environment }}
-    needs: [ setup, analyze]
-    runs-on: ${{ needs.setup.outputs.runner-config == 'ubuntu-24.04' && 'ubuntu-24.04' || fromJson(needs.setup.outputs.runner-config) }}
+    needs: [ analyze]
+    runs-on: ${{ inputs.private-runner == '' && 'ubuntu-24.04' || inputs.private-runner }}
     env:
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID  }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      TF_PLUGIN_CACHE_DIR: $HOME/.terraform.d/plugin-cache
       
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v4
-
-      - name: Install Azure CLI
-        if: ${{ inputs.private-runner}}
-        run: |
-         curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash        
+        uses: actions/checkout@v4    
 
       - name: "Login via Azure CLI"
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}   
 
       - id: kubeconfig
         if: ${{ inputs.aks-cluster-name != '' && inputs.aks-resource-group != '' }}
         name: "Create kubeconfig file"
         run: |
-          az aks install-cli
           az aks get-credentials --resource-group $AKS_RESOURCE_GROUP --name $AKS_CLUSTER_NAME --overwrite-existing
           kubelogin convert-kubeconfig -l azurecli
           echo "TF_VAR_aks_cluster_name=${AKS_CLUSTER_NAME}" >> $GITHUB_ENV
@@ -144,11 +130,21 @@ jobs:
         with:
           terraform_version: 'latest'
           terraform_wrapper: true
-      - name: Set up Node.js
-        if: ${{ inputs.private-runner}}
-        uses: actions/setup-node@v3
+
+      - name: Configure Terraform plugin cache
+        run: |
+          echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >>"$GITHUB_ENV"
+          mkdir --parents "$HOME/.terraform.d/plugin-cache"
+
+      - name: Restore Terraform provider cache
+        uses: actions/cache@v4
         with:
-          node-version: '20'
+          path: ~/.terraform.d/plugin-cache
+          key: ${{ runner.os }}-terraform-${{ inputs.working-dir }}-${{ hashFiles(format('{0}/backend.tf', inputs.working-dir)) }}
+          restore-keys: |
+            ${{ runner.os }}-terraform-${{ inputs.working-dir }}-
+            ${{ runner.os }}-terraform-
+
       - name: Init
         run: terraform init -backend-config key=$TF_BACKEND_KEY-$ENVIRONMENT.tfstate -backend-config subscription_id=$ARM_SUBSCRIPTION_ID -upgrade
         working-directory: ${{ inputs.working-dir }}
@@ -208,8 +204,8 @@ jobs:
       changes: ${{ steps.plan.outputs.changes }}
 
   apply:
-    needs: [ setup, plan]
-    runs-on: ${{ needs.setup.outputs.runner-config == 'ubuntu-24.04' && 'ubuntu-24.04' || fromJson(needs.setup.outputs.runner-config) }}
+    needs: [ plan]
+    runs-on: ${{ inputs.private-runner == '' && 'ubuntu-24.04' || inputs.private-runner }}
     if: needs.plan.outputs.changes == 'true'
     environment: ${{ inputs.environment }}
     env:
@@ -219,25 +215,19 @@ jobs:
 
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v4
-
-      - name: Install Azure CLI
-        if: ${{ inputs.private-runner}}
-        run: |
-         curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash           
+        uses: actions/checkout@v4         
 
       - name: "Login via Azure CLI"
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}  
+           
       - id: kubeconfig
         if: ${{ inputs.aks-cluster-name != '' && inputs.aks-resource-group != '' }}
         name: "Create kubeconfig file"
         run: |
-          az aks install-cli
           az aks get-credentials --resource-group $AKS_RESOURCE_GROUP --name $AKS_CLUSTER_NAME --overwrite-existing
           kubelogin convert-kubeconfig -l azurecli
         env:
@@ -249,11 +239,21 @@ jobs:
         with:
           terraform_version: 'latest'
           terraform_wrapper: true
-      - name: Set up Node.js
-        if: ${{ inputs.private-runner}}
-        uses: actions/setup-node@v3
+
+      - name: Configure Terraform plugin cache
+        run: |
+          echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >>"$GITHUB_ENV"
+          mkdir --parents "$HOME/.terraform.d/plugin-cache"
+
+      - name: Restore Terraform provider cache
+        uses: actions/cache@v4
         with:
-          node-version: '20'
+          path: ~/.terraform.d/plugin-cache
+          key: ${{ runner.os }}-terraform-${{ inputs.working-dir }}-${{ hashFiles(format('{0}/backend.tf', inputs.working-dir)) }}
+          restore-keys: |
+            ${{ runner.os }}-terraform-${{ inputs.working-dir }}-
+            ${{ runner.os }}-terraform-
+   
       - name: Init
         run: terraform init -backend-config key=$TF_BACKEND_KEY-$ENVIRONMENT.tfstate -backend-config subscription_id=$ARM_SUBSCRIPTION_ID -upgrade
         working-directory: ${{ inputs.working-dir }}

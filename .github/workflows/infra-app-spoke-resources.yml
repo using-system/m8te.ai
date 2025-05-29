@@ -35,10 +35,10 @@ jobs:
       working-dir: "infra/app-spoke-resources"
       environment: ${{ matrix.env.name }}
       backend-key: "app-spoke-resources"
+      private-runner: "arc-${{ matrix.env.infra }}-runners"
       aks-cluster-name: "m8t-aks"
       aks-resource-group: "m8t-${{ matrix.env.infra }}-we-aks"      
       vars: |
         azure_subscription_id
         azure_tenant_id
-      private-runner: true
     secrets: inherit
