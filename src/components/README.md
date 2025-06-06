@@ -1,4 +1,4 @@
-# m8te.ai comoponents
+# m8te.ai components
 
 ## Backend Components
 
