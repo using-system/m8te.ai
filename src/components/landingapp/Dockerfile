@@ -1,4 +1,4 @@
-# Offcial node image
+# Official node image
 FROM node:18-alpine
 
 # Create a working directory
