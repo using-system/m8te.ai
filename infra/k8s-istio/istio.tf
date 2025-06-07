@@ -22,7 +22,7 @@ module "istio_tls_csi" {
   keyvault_name   = data.azurerm_key_vault.hub.name
   keyvault_id     = data.azurerm_key_vault.hub.id
 
-  certificate_name = "m8t"
+  certificate_name = var.project_name
 }
 
 resource "helm_release" "istio_base" {
@@ -61,8 +61,13 @@ resource "helm_release" "istio_system" {
         effect   = "NoSchedule"
       }] : []
       autoscaleEnabled = true
-      autoscaleMin     = 2
-      autoscaleMax     = 6
+      autoscaleMin     = var.istio_system_min_replicas
+      autoscaleMax     = var.istio_system_max_replicas
+      resources = {
+        requests = {
+          memory = "128Mi"
+        }
+      }
     })
   ]
 }
@@ -120,8 +125,8 @@ resource "kubernetes_horizontal_pod_autoscaler_v2" "istio_api_gateway" {
       kind        = "Deployment"
       name        = "gateway-istio"
     }
-    min_replicas = 2
-    max_replicas = 5
+    min_replicas = var.istio_gateway_min_replicas
+    max_replicas = var.istio_gateway_max_replicas
     metric {
       type = "Resource"
       resource {

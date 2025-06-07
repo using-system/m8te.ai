@@ -63,15 +63,39 @@ variable "node_selector" {
 
 variable "istio_base_helmchart_version" {
   description = "Istio Base Helm Chart Version"
-  default     = "1.24.2"
+  default     = "1.26.1"
 }
 
 variable "istio_system_helmchart_version" {
   description = "Istio System Helm Chart Version"
-  default     = "1.24.2"
+  default     = "1.26.1"
 }
 
 variable "istio_gateway_helmchart_version" {
   description = "Istio Gateway Helm Chart Version"
-  default     = "1.24.2"
+  default     = "1.26.1"
+}
+
+#------------------------------------------------------------------------------
+# Istio Variables
+#------------------------------------------------------------------------------
+
+variable "istio_system_min_replicas" {
+  description = "Minimum number of replicas for Istio system components"
+  type        = number
+}
+
+variable "istio_system_max_replicas" {
+  description = "Maximum number of replicas for Istio system components"
+  type        = number
+}
+
+variable "istio_gateway_min_replicas" {
+  description = "Minimum number of replicas for Istio gateway"
+  type        = number
+}
+
+variable "istio_gateway_max_replicas" {
+  description = "Maximum number of replicas for Istio gateway"
+  type        = number
 }
