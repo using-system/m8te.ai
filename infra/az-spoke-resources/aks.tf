@@ -1,3 +1,13 @@
+locals {
+  aks_user_node_pools = {
+    for name, pool in var.aks_config.user_node_pools :
+    name => merge(
+      { vnet_subnet_id = data.azurerm_subnet.cluster.id },
+      pool
+    )
+  }
+}
+
 resource "azurerm_resource_group" "aks" {
   location = var.location
   name     = "${module.convention.resource_name}-aks"
@@ -35,60 +45,24 @@ module "aks" {
   temporary_name_for_rotation = "poolrot"
 
   kubernetes_version   = var.aks_config.control_plane_version
-  orchestrator_version = var.aks_config.system_pool_orchestrator_version
+  orchestrator_version = var.aks_config.system_node_pool.orchestrator_version
   sku_tier             = "Standard"
   vnet_subnet_id       = data.azurerm_subnet.cluster.id
   private_dns_zone_id  = data.azurerm_private_dns_zone.azmk8s.id
 
   only_critical_addons_enabled = true
   enable_auto_scaling          = false
-  agents_size                  = var.aks_config.system_pool_vm_size
-  agents_availability_zones    = var.aks_config.system_pool_availability_zones
-  agents_count                 = var.aks_config.system_pool_size_count
-  agents_max_pods              = 100
-  agents_pool_name             = "systempool"
+  agents_size                  = var.aks_config.system_node_pool.vm_size
+  agents_availability_zones    = var.aks_config.system_node_pool.availability_zones
+  agents_count                 = var.aks_config.system_node_pool.node_count
+  agents_max_pods              = var.aks_config.system_node_pool.max_pods
+  agents_pool_name             = var.aks_config.system_node_pool.name
 
   key_vault_secrets_provider_enabled = true
   secret_rotation_enabled            = true
   secret_rotation_interval           = "2m"
 
-  node_pools = {
-    "UserDefaultPool" = {
-      name                 = "default"
-      orchestrator_version = var.aks_config.user_default_pool_orchestrator_version
-      enable_auto_scaling  = false
-      zones                = var.aks_config.user_default_pool_availability_zones
-      vm_size              = var.aks_config.user_default_pool_vm_size
-      os_disk_size_gb      = var.aks_config.os_disk_size_gb
-      priority             = "Regular"
-      node_count           = var.aks_config.user_default_pool_size_count
-      max_pods             = 100
-      vnet_subnet_id       = data.azurerm_subnet.cluster.id
-      upgrade_settings = {
-        max_surge                     = "10%"
-        drain_timeout_in_minutes      = 0
-        node_soak_duration_in_minutes = 0
-      }
-      create_before_destroy = true
-    }
-    "UserSpotPool" = {
-      name                  = "spot"
-      orchestrator_version  = var.aks_config.user_spot_pool_orchestrator_version
-      node_taints           = ["kubernetes.azure.com/scalesetpriority=spot:NoSchedule"]
-      enable_auto_scaling   = true
-      zones                 = var.aks_config.user_spot_pool_availability_zones
-      vm_size               = var.aks_config.user_spot_pool_vm_size
-      os_disk_size_gb       = var.aks_config.os_disk_size_gb
-      os_disk_type          = "Ephemeral"
-      priority              = "Spot"
-      eviction_policy       = "Delete"
-      min_count             = var.aks_config.user_spot_pool_size_min_count
-      max_count             = var.aks_config.user_spot_pool_size_max_count
-      max_pods              = 100
-      vnet_subnet_id        = data.azurerm_subnet.cluster.id
-      create_before_destroy = true
-    }
-  }
+  node_pools = local.aks_user_node_pools
 
   azure_policy_enabled            = true
   log_analytics_workspace_enabled = false
@@ -113,7 +87,7 @@ module "aks" {
   net_profile_service_cidr   = var.aks_config.services_cidr
   net_profile_dns_service_ip = var.aks_config.dns_service_ip
   node_os_channel_upgrade    = "NodeImage"
-  os_disk_size_gb            = var.aks_config.os_disk_size_gb
+  os_disk_size_gb            = var.aks_config.system_node_pool.os_disk_size_gb
 
   attached_acr_id_map = {
     m8t = data.azurerm_container_registry.hub.id

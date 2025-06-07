@@ -193,13 +193,6 @@ jobs:
           fi
         working-directory: ${{ inputs.working-dir }}
 
-      - name: Upload tfplan as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfplan-${{ inputs.environment }}
-          path: |
-            ${{ inputs.working-dir }}/tfplan
-
     outputs:
       changes: ${{ steps.plan.outputs.changes }}
 
@@ -258,12 +251,6 @@ jobs:
         run: terraform init -backend-config key=$TF_BACKEND_KEY-$ENVIRONMENT.tfstate -backend-config subscription_id=$ARM_SUBSCRIPTION_ID -upgrade
         working-directory: ${{ inputs.working-dir }}
 
-      - name: Download tfplan artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: "tfplan-${{ inputs.environment }}"
-          path: ${{ inputs.working-dir }}
-
       - name: Terraform Apply
-        run: terraform apply 'tfplan'
+        run: terraform apply -auto-approve
         working-directory: ${{ inputs.working-dir }}

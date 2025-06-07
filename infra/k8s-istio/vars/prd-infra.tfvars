@@ -8,6 +8,17 @@ tags = {
   provisionedby = "terraform"
 }
 
-node_selector = {
-  "kubernetes.azure.com/scalesetpriority" = "spot"
-}
+#------------------------------------------------------------------------------
+# Helm Chart Variables
+#------------------------------------------------------------------------------
+
+node_selector = null
+
+#------------------------------------------------------------------------------
+# Istio Variables
+#------------------------------------------------------------------------------
+
+istio_system_min_replicas  = 2
+istio_system_max_replicas  = 3
+istio_gateway_min_replicas = 2
+istio_gateway_max_replicas = 4

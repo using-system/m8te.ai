@@ -71,38 +71,37 @@ variable "ingress_prefix" {
 
 variable "prometheus_helmchart_version" {
   description = "Prometheus Helm Chart Version"
-  default     = "26.0.1"
+  default     = "27.20.0"
 }
 
 variable "thanos_helmchart_version" {
   description = "TJ Helm Chart Version"
-  default     = "15.9.2"
+  default     = "17.0.1"
 }
 
 variable "thanos_sidecar_image" {
   description = "Thanos Sidecar Image"
-  default     = "quay.io/thanos/thanos:v0.37.2"
+  default     = "quay.io/thanos/thanos:v0.38.0"
 }
 
 variable "grafana_helmchart_version" {
   description = "Grafana Helm Chart Version"
-  default     = "9.0.0"
+  default     = "9.2.2"
 }
 
 variable "loki_helmchart_version" {
   description = "Loki Helm Chart Version"
-  default     = "6.29.0"
+  default     = "6.30.1"
 }
 
 variable "promtail_helmchart_version" {
   description = "Promtail Helm Chart Version"
-  default     = "6.16.6"
+  default     = "6.17.0"
 }
 
 variable "tempo_helmchart_version" {
   description = "Tempo Helm Chart Version"
-  default     = "1.38.2"
-
+  default     = "1.41.1"
 }
 
 variable "pyroscope_helmchart_version" {

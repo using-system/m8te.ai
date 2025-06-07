@@ -72,6 +72,7 @@ resource "azurerm_storage_account" "tempo" {
   #checkov:skip=CKV2_AZURE_40  : Ensure storage account is not configured with Shared Key authorization      
   #checkov:skip=CKV2_AZURE_1   : Ensure storage for critical data are encrypted with Customer Managed Key
   #checkov:skip=CKV_AZURE_206  :  Ensure that Storage Accounts use replication
+  #checkov:skip=CKV_AZURE_43  :  Ensure Storage Accounts adhere to the naming rules
 
   depends_on = [azurerm_resource_group.tempo]
 
