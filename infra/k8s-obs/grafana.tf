@@ -255,8 +255,6 @@ resource "helm_release" "grafana" {
   ]
 }
 
-
-
 resource "kubernetes_manifest" "grafana_http_route" {
   depends_on = [helm_release.grafana]
   manifest = {
