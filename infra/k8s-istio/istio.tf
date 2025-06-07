@@ -65,7 +65,8 @@ resource "helm_release" "istio_system" {
       autoscaleMax     = var.istio_system_max_replicas
       resources = {
         requests = {
-          memory = "128Mi"
+          memory = "512Mi"
+          cpu    = "500m"
         }
       }
     })

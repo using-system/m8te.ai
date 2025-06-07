@@ -20,6 +20,6 @@ node_selector = null
 #------------------------------------------------------------------------------
 
 istio_system_min_replicas  = 1
-istio_system_max_replicas  = 2
+istio_system_max_replicas  = 1
 istio_gateway_min_replicas = 1
-istio_gateway_max_replicas = 2
+istio_gateway_max_replicas = 1
