@@ -78,7 +78,7 @@ jobs:
         working-directory: ${{ inputs.working-dir }}
         
       - name: Init
-        run: terraform init -backend-config key=$TF_BACKEND_KEY-$ENVIRONMENT.tfstate -backend-config subscription_id=$ARM_SUBSCRIPTION_ID -upgrade
+        run: terraform init -backend-config key=$TF_BACKEND_KEY-$ENVIRONMENT.tfstate -backend-config subscription_id=$ARM_SUBSCRIPTION_ID
         working-directory: ${{ inputs.working-dir }}
 
       - name: Validate
@@ -146,7 +146,7 @@ jobs:
             ${{ runner.os }}-terraform-
 
       - name: Init
-        run: terraform init -backend-config key=$TF_BACKEND_KEY-$ENVIRONMENT.tfstate -backend-config subscription_id=$ARM_SUBSCRIPTION_ID -upgrade
+        run: terraform init -backend-config key=$TF_BACKEND_KEY-$ENVIRONMENT.tfstate -backend-config subscription_id=$ARM_SUBSCRIPTION_ID
         working-directory: ${{ inputs.working-dir }}
 
       - run: |
@@ -223,6 +223,8 @@ jobs:
         run: |
           az aks get-credentials --resource-group $AKS_RESOURCE_GROUP --name $AKS_CLUSTER_NAME --overwrite-existing
           kubelogin convert-kubeconfig -l azurecli
+          echo "TF_VAR_aks_cluster_name=${AKS_CLUSTER_NAME}" >> $GITHUB_ENV
+          echo "TF_VAR_aks_resource_group_name=${AKS_RESOURCE_GROUP}" >> $GITHUB_ENV
         env:
             AKS_CLUSTER_NAME: ${{ inputs.aks-cluster-name }}
             AKS_RESOURCE_GROUP: ${{ inputs.aks-resource-group }}          
@@ -248,9 +250,31 @@ jobs:
             ${{ runner.os }}-terraform-
    
       - name: Init
-        run: terraform init -backend-config key=$TF_BACKEND_KEY-$ENVIRONMENT.tfstate -backend-config subscription_id=$ARM_SUBSCRIPTION_ID -upgrade
+        run: terraform init -backend-config key=$TF_BACKEND_KEY-$ENVIRONMENT.tfstate -backend-config subscription_id=$ARM_SUBSCRIPTION_ID
         working-directory: ${{ inputs.working-dir }}
+      
+      - run: |
+          for key in $(echo $KEYS  | tr "," "\n"); do
+            SECRET_KEY=`echo $key | tr '[:lower:]' '[:upper:]'`
+            VAL=`jq -r ".${SECRET_KEY}" <<< $SECRETS`
+            if (( $(grep -c . <<<"${VAL}") > 1 )); then
+              #VAL has more than one line
+              echo "TF_VAR_${key}<<EOF" >> $GITHUB_ENV
+              echo ${VAL} >> $GITHUB_ENV
+              echo "EOF" >> $GITHUB_ENV
+              echo "${key}<<EOF" >> $GITHUB_ENV
+              echo ${VAL} >> $GITHUB_ENV
+              echo "EOF" >> $GITHUB_ENV
+            else
+              #VAL has at most one line
+              echo "TF_VAR_${key}=${VAL}" >> $GITHUB_ENV
+              echo "${key}=${VAL}" >> $GITHUB_ENV
+            fi
+          done
+        env:
+          KEYS: ${{ inputs.vars }}
+          SECRETS: ${{ toJSON(secrets) }}
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve -var-file="vars/${ENVIRONMENT}.tfvars"
         working-directory: ${{ inputs.working-dir }}

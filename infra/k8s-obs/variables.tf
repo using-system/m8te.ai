@@ -91,7 +91,7 @@ variable "grafana_helmchart_version" {
 
 variable "loki_helmchart_version" {
   description = "Loki Helm Chart Version"
-  default     = "6.30.1"
+  default     = "6.29.0"
 }
 
 variable "promtail_helmchart_version" {

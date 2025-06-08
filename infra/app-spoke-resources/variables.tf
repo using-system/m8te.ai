@@ -80,3 +80,13 @@ variable "resources" {
   }))
   default = {}
 }
+
+#------------------------------------------------------------------------------
+# Helm Chart Variables
+#------------------------------------------------------------------------------
+
+variable "keycloak_helmchart_version" {
+  description = "Version of the Keycloak Helm chart to deploy"
+  type        = string
+  default     = "24.7.3"
+}

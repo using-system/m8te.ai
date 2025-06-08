@@ -1,3 +1,7 @@
+locals {
+  arc_runners_name = "arc-${var.env}-runners"
+
+}
 resource "kubernetes_namespace" "arc" {
   metadata {
     name = "arc"
@@ -58,7 +62,7 @@ resource "helm_release" "arc_runners" {
     kubernetes_secret.github_runner_config,
   ]
 
-  name       = "arc-${var.env}-runners"
+  name       = local.arc_runners_name
   namespace  = kubernetes_namespace.arc.metadata[0].name
   chart      = "gha-runner-scale-set"
   repository = "oci://ghcr.io/actions/actions-runner-controller-charts"
@@ -75,6 +79,12 @@ resource "helm_release" "arc_runners" {
               name    = "runner"
               image   = "${var.gh_runner_image}"
               command = ["/home/runner/run.sh"]
+              resources = {
+                requests = {
+                  cpu    = "300m"
+                  memory = "512Mi"
+                }
+              }
             }
           ]
         }
@@ -170,3 +180,4 @@ resource "helm_release" "arc_runners" {
     })
   ]
 }
+
