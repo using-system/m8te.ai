@@ -64,66 +64,6 @@ resource "grafana_rule_group" "loki" {
   }
 
   rule {
-    name      = "LokiIngestionThroughputDrop"
-    condition = "Condition"
-    for       = "0s"
-
-    data {
-      ref_id = "IngestRate"
-      relative_time_range {
-        from = 300
-        to   = 0
-      }
-      datasource_uid = data.grafana_data_source.prometheus.uid
-      model = jsonencode({
-        expr = "sum(rate(loki_distributor_bytes_received_total[5m])) by (instance)"
-      })
-    }
-
-    data {
-      ref_id = "ReduceIngestRate"
-      relative_time_range {
-        from = 0
-        to   = 0
-      }
-      datasource_uid = "__expr__"
-      model = jsonencode({
-        expression = "IngestRate"
-        type       = "reduce"
-        reducer    = "last"
-      })
-    }
-
-    data {
-      ref_id = "Condition"
-      relative_time_range {
-        from = 0
-        to   = 0
-      }
-      datasource_uid = "__expr__"
-      model = jsonencode({
-        type       = "math"
-        expression = "$ReduceIngestRate < 50000"
-      })
-    }
-
-    annotations = {
-      summary     = "Drop in ingestion throughput on {{ $labels.instance }}"
-      description = "The ingestion byte rate on instance {{ $labels.instance }} has fallen below 1 MiB/s over the last 5 minutes."
-    }
-
-    labels = {
-      severity = "warning"
-    }
-
-    notification_settings {
-      contact_point = "default"
-      group_by      = ["instance"]
-      mute_timings  = []
-    }
-  }
-
-  rule {
     name      = "LokiHighQueryLatency"
     condition = "Condition"
     for       = "0s"
