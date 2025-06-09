@@ -66,19 +66,26 @@ variable "node_selector" {
   type        = map(string)
 }
 
-variable "resources" {
-  description = "Resource requests and limits for the deployments"
+variable "components" {
+  description = "Configuration for the components deployment"
   type = map(object({
-    requests = object({
-      cpu    = string
-      memory = string
+    resources = object({
+      requests = map(string)
+      limits   = map(string)
     })
-    limits = object({
-      cpu    = string
-      memory = string
-    })
+    ingress_prefix = string
+    container_user = number
   }))
-  default = {}
+}
+
+variable "otlp" {
+  description = "Configuration for the otlp deployment"
+  type = object({
+    resources = object({
+      requests = map(string)
+      limits   = map(string)
+    })
+  })
 }
 
 #------------------------------------------------------------------------------

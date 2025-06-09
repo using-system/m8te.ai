@@ -154,6 +154,7 @@ resource "helm_release" "keycloak" {
 
         configuration = {
           "m8t-realm.json" = {
+            "id" : "m8t",
             "realm" : "m8t",
             "displayName" : var.dns_zone_name,
             "enabled" : true,
