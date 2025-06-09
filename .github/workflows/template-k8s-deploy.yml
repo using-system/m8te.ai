@@ -54,6 +54,7 @@ jobs:
     - name: Update image
       run: |
         kubectl set image deployment/$APP_NAME $APP_NAME=$IMAGE -n $K8S_NAMESPACE
+        kubectl rollout status deployment/$APP_NAME -n $K8S_NAMESPACE --timeout=300s
       env:
         K8S_NAMESPACE: ${{ inputs.namespace }}
         APP_NAME: ${{ inputs.app-name }}

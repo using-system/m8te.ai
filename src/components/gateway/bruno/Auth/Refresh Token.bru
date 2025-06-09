@@ -1,0 +1,44 @@
+meta {
+  name: Refresh Token
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{keycloak_base_url}}/realms/{{keycloak_realm}}/protocol/openid-connect/token
+  body: formUrlEncoded
+  auth: none
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+}
+
+body:form-urlencoded {
+  grant_type: refresh_token
+  client_id: {{keycloak_client_id}}
+  client_secret: {{keycloak_client_secret}}
+  refresh_token: {{refresh_token}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setEnvVar("access_token", res.body.access_token);
+    if (res.body.refresh_token) {
+      bru.setEnvVar("refresh_token", res.body.refresh_token);
+    }
+    console.log("Tokens refreshed and saved to environment");
+  } else {
+    console.log("Token refresh failed:", res.body);
+  }
+}
+
+tests {
+  test("Status should be 200", function() {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("Should return access token", function() {
+    expect(res.body.access_token).to.be.a('string');
+  });
+}
