@@ -1,9 +1,12 @@
 locals {
+  short_env = replace(var.env, "-app", "")
   default_env_vars = {
-    ENVIRONMENT        = replace(var.environment, "-app", "")
-    DOTNET_ENVIRONMENT = replace(var.environment, "-app", "")
+    ENVIRONMENT        = local.short_env
+    DOTNET_ENVIRONMENT = local.short_env
     DOTNET_HTTP_PORTS  = var.port
     OTEL_SERVICE_NAME  = var.name
+    KEYCLOAK_URL       = "https://${local.short_env}-connect.m8te.ai"
+    KEYCLOAK_REALM     = "m8t"
   }
 
   merged_env_vars = merge(local.default_env_vars, var.env_vars)
