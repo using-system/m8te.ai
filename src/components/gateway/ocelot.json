@@ -9,48 +9,6 @@
       "UpstreamHttpMethod": [
         "Get"
       ],
-      "UpstreamPathTemplate": "/ocelot/posts/{id}",
-      "DownstreamPathTemplate": "/todos/{id}",
-      "DownstreamScheme": "https",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "jsonplaceholder.typicode.com",
-          "Port": 443
-        }
-      ]
-    },
-    {
-      "UpstreamHttpMethod": [
-        "Get"
-      ],
-      "UpstreamPathTemplate": "/ocelot/docs/{everything}",
-      "DownstreamPathTemplate": "/en/latest/{everything}",
-      "DownstreamScheme": "https",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "ocelot.readthedocs.io",
-          "Port": 443
-        }
-      ]
-    },
-    {
-      "UpstreamHttpMethod": [
-        "Get"
-      ],
-      "UpstreamPathTemplate": "/_/{BFF}",
-      "DownstreamPathTemplate": "/_/{BFF}",
-      "DownstreamScheme": "https",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "ocelot.readthedocs.io",
-          "Port": 443
-        }
-      ]
-    },
-    {
-      "UpstreamHttpMethod": [
-        "Get"
-      ],
       "UpstreamPathTemplate": "/health",
       "DownstreamPathTemplate": "/health",
       "DownstreamScheme": "https",
@@ -60,6 +18,23 @@
           "Port": 443
         }
       ]
+    },
+    {
+      "UpstreamHttpMethod": [
+        "Get"
+      ],
+      "UpstreamPathTemplate": "/v1/account/apikey",
+      "DownstreamPathTemplate": "/api/v1/apikey",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "m8t-accountms",
+          "Port": 3000
+        }
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      }
     }
   ]
 }
