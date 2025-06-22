@@ -1,0 +1,30 @@
+meta {
+  name: Verify Token
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{keycloak_base_url}}/realms/{{keycloak_realm}}/protocol/openid-connect/userinfo
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+}
+
+tests {
+  test("Status should be 200", function() {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("Should return user info", function() {
+    expect(res.body).to.be.an('object');
+    expect(res.body.sub).to.be.a('string');
+  });
+}

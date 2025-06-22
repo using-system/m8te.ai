@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:5102",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "KEYCLOAK_URL": "https://dev-connect.m8te.ai",
+        "KEYCLOAK_REALM": "m8t",
+        "KEYCLOAK_CLIENT_ID": "accountms-service",
+        "KEYCLOAK_CLIENT_SECRET": "changeme"
+      }
+    }
+  }
+}

@@ -1,0 +1,37 @@
+meta {
+  name: apikey
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{api_base_url}}/v1/account/apikey
+  body: none
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+  Accept: application/json
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+script:pre-request {
+  // Vérifier si le token est présent
+  if (!bru.getEnvVar("access_token")) {
+    throw new Error("Access token is missing. Please authenticate first using the Auth/Get Token request.");
+  }
+}
+
+tests {
+  test("Status should be 200", function() {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("Should return JSON", function() {
+    expect(res.headers['content-type']).to.include('application/json');
+  });
+}

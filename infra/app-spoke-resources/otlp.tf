@@ -1,22 +1,30 @@
-resource "kubectl_manifest" "otlp_app" {
+locals {
+  otlp_namespaces = [
+    kubernetes_namespace.app.metadata[0].name,
+    kubernetes_namespace.keycloak.metadata[0].name
+  ]
+}
+
+resource "kubectl_manifest" "otlp" {
+  for_each = toset(local.otlp_namespaces)
 
   yaml_body = <<YAML
 apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
   name: otlp-app-sidecar
-  namespace: ${kubernetes_namespace.app.metadata[0].name}
+  namespace: ${each.value}
 spec:
   mode: sidecar
   args:
     feature-gates: "+service.profilesSupport"
   resources:
     requests:
-      cpu:    ${var.resources.otlp.requests.cpu}
-      memory: ${var.resources.otlp.requests.memory}
+      cpu:    ${var.otlp.resources.requests.cpu}
+      memory: ${var.otlp.resources.requests.memory}
     limits:
-      cpu:    ${var.resources.otlp.limits.cpu}
-      memory: ${var.resources.otlp.limits.memory}
+      cpu:    ${var.otlp.resources.limits.cpu}
+      memory: ${var.otlp.resources.limits.memory}
   config:
     receivers:
       otlp:
