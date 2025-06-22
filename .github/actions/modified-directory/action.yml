@@ -1,15 +1,15 @@
-name: "Calculate Modified Terraform Layers"
-description: "Determines which Terraform layers have been modified in a PR"
+name: "Calculate Modified Directories"
+description: "Determines which directories have been modified in a PR"
 
 inputs:
-  layers-directory:
-    description: "Base working directory for Terraform layers"
+  base-directory:
+    description: "Base working directory to scan for modifications"
     required: true
 
 outputs:
-  modified_layers:
-    description: "JSON array of modified Terraform layers"
-    value: ${{ steps.process-changed-files.outputs.final_layers }}
+  modified_directories:
+    description: "JSON array of modified directories"
+    value: ${{ steps.process-changed-files.outputs.final_directories }}
 
 runs:
   using: "composite"
@@ -19,7 +19,7 @@ runs:
       shell: bash
       run: |
         # Count the number of directory separators in the path and add 1
-        DEPTH=$(echo "${{ inputs.layers-directory }}" | awk -F'/' '{print NF+1}')
+        DEPTH=$(echo "${{ inputs.base-directory }}" | awk -F'/' '{print NF+1}')
         echo "Directory depth: $DEPTH"
         echo "depth=$DEPTH" >> $GITHUB_OUTPUT
 
@@ -31,7 +31,7 @@ runs:
         quotepath: false
         escape_json: false
         dir_names: "true"
-        files: ${{ inputs.layers-directory }}/**
+        files: ${{ inputs.base-directory }}/**
         dir_names_max_depth: ${{ steps.calculate-depth.outputs.depth }}
 
     - name: List all changed files
@@ -46,13 +46,13 @@ runs:
 
         # Check if there are any changed files
         if [ "$CHANGED_FILES" == "[]" ] || [ -z "$CHANGED_FILES" ]; then
-          echo "No modified layers found. Setting empty array as default."
+          echo "No modified directories found. Setting empty array as default."
           # Set an empty array as the default value
-          echo "final_layers=[]" >> $GITHUB_OUTPUT
+          echo "final_directories=[]" >> $GITHUB_OUTPUT
         else
-          # Filter out the modules directory and the root infra directory
-          FILTERED_LAYERS=$(echo "$CHANGED_FILES" | jq -c '[.[] | select(. != "${{ inputs.layers-directory }}/modules" and . != "${{ inputs.layers-directory }}")]')
+          # Filter out specific directories (modules for infra, etc.) and the root directory
+          FILTERED_DIRECTORIES=$(echo "$CHANGED_FILES" | jq -c '[.[] | select(. != "${{ inputs.base-directory }}/modules" and . != "${{ inputs.base-directory }}")]')
           echo "Original changed files: $CHANGED_FILES"
-          echo "Filtered layers (excluding modules and root): $FILTERED_LAYERS"
-          echo "final_layers=$FILTERED_LAYERS" >> $GITHUB_OUTPUT
+          echo "Filtered directories (excluding modules and root): $FILTERED_DIRECTORIES"
+          echo "final_directories=$FILTERED_DIRECTORIES" >> $GITHUB_OUTPUT
         fi

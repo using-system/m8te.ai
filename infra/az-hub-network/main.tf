@@ -5,4 +5,3 @@ module "convention" {
   environment = var.env
   region      = var.location_short_name
 }
-

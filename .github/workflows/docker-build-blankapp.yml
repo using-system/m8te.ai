@@ -4,14 +4,12 @@ on:
     branches:
       - main
     paths:
-      - ".github/workflows/docker-build-blankapp.yml"
       - "docker/docker-file/blankapp/**"
   workflow_dispatch:
   pull_request:
     branches:
       - main
     paths:
-      - ".github/workflows/docker-build-blankapp.yml"
       - "docker/docker-file//blankapp/**"
 
 permissions:
@@ -42,10 +40,22 @@ jobs:
 
   docker:
     needs: [version-tag]
-    uses: ./.github/workflows/template-docker.yml
-    with:
-      dockerfile: docker/docker-file/blankapp/Dockerfile
-      working-directory: docker/docker-file/blankapp
-      image_name: m8thubinfraweacr.azurecr.io/blankapp
-      version: ${{ needs.version-tag.outputs.version }}
-    secrets: inherit
+    runs-on: ubuntu-24.04
+    environment: build
+    outputs:
+      image_name: ${{ steps.docker-build.outputs.image_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and push Docker image
+        id: docker-build
+        uses: ./.github/actions/docker
+        with:
+          dockerfile: docker/docker-file/blankapp/Dockerfile
+          working-directory: docker/docker-file/blankapp
+          image_name: m8thubinfraweacr.azurecr.io/blankapp
+          version: ${{ needs.version-tag.outputs.version }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
