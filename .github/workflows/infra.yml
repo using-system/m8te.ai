@@ -1,5 +1,7 @@
 name: infra
 
+run-name: "${{ inputs.layer }}"
+
 on:
   workflow_dispatch:
     inputs:

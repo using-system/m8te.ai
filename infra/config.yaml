@@ -2,13 +2,13 @@ layers:
   - name: "app-spoke-resources"
     envs:
       - name: "dev-app"
-        runs-on: "arc-stg-runners"
+        runs-on: "arc-stg-infra-runners"
         aks-cluster-name: "m8t-aks"
-        aks-resource-group: "m8t-stg-we-aks"
+        aks-resource-group: "m8t-stg-infra-we-aks"
       - name: "prd-app"
-        runs-on: "arc-stg-runners"
+        runs-on: "arc-stg-infra-runners"
         aks-cluster-name: "m8t-aks"
-        aks-resource-group: "m8t-stg-we-aks"
+        aks-resource-group: "m8t-stg-infra-we-aks"
     vars:
       - "azure_subscription_id"
       - "azure_tenant_id"
@@ -35,7 +35,7 @@ layers:
   - name: "az-spoke-resources"
     envs:
       - name: "stg-infra"
-        runs-on: "arc-stg-runners"
+        runs-on: "arc-stg-infra-runners"
         aks-cluster-name: ""
         aks-resource-group: ""
     vars:
@@ -44,9 +44,9 @@ layers:
   - name: "grafana-spoke-resources"
     envs:
       - name: "stg-infra"
-        runs-on: "arc-stg-runners"
+        runs-on: "arc-stg-infra-runners"
         aks-cluster-name: "m8t-aks"
-        aks-resource-group: "m8t-stg-we-aks"
+        aks-resource-group: "m8t-stg-infra-we-aks"
     vars:
       - "azure_subscription_id"
       - "azure_tenant_id"
@@ -55,18 +55,18 @@ layers:
   - name: "k8s-core-resources"
     envs:
       - name: "stg-infra"
-        runs-on: "arc-stg-runners"
+        runs-on: "arc-stg-infra-runners"
         aks-cluster-name: "m8t-aks"
-        aks-resource-group: "m8t-stg-we-aks"
+        aks-resource-group: "m8t-stg-infra-we-aks"
     vars:
       - "azure_subscription_id"
       - "azure_tenant_id"
   - name: "k8s-devops"
     envs:
       - name: "stg-infra"
-        runs-on: "arc-stg-runners"
+        runs-on: "arc-stg-infra-runners"
         aks-cluster-name: "m8t-aks"
-        aks-resource-group: "m8t-stg-we-aks"
+        aks-resource-group: "m8t-stg-infra-we-aks"
     vars:
       - "azure_subscription_id"
       - "azure_tenant_id"
@@ -76,27 +76,27 @@ layers:
   - name: "k8s-istio"
     envs:
       - name: "stg-infra"
-        runs-on: "arc-stg-runners"
+        runs-on: "arc-stg-infra-runners"
         aks-cluster-name: "m8t-aks"
-        aks-resource-group: "m8t-stg-we-aks"
+        aks-resource-group: "m8t-stg-infra-we-aks"
     vars:
       - "azure_subscription_id"
       - "azure_tenant_id"
   - name: "k8s-obs"
     envs:
       - name: "stg-infra"
-        runs-on: "arc-stg-runners"
+        runs-on: "arc-stg-infra-runners"
         aks-cluster-name: "m8t-aks"
-        aks-resource-group: "m8t-stg-we-aks"
+        aks-resource-group: "m8t-stg-infra-we-aks"
     vars:
       - "azure_subscription_id"
       - "azure_tenant_id"
   - name: "k8s-spoke-resources"
     envs:
       - name: "stg-infra"
-        runs-on: "arc-stg-runners"
+        runs-on: "arc-stg-infra-runners"
         aks-cluster-name: "m8t-aks"
-        aks-resource-group: "m8t-stg-we-aks"
+        aks-resource-group: "m8t-stg-infra-we-aks"
     vars:
       - "azure_subscription_id"
       - "azure_tenant_id"
