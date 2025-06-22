@@ -1,0 +1,114 @@
+name: infra
+
+on:
+  workflow_dispatch:
+    inputs:
+      layer:
+        description: 'Choose the Terraform layer to deploy'
+        required: true
+        type: choice
+        options:
+          - app-spoke-resources
+          - az-hub-network
+          - az-spoke-network
+          - az-spoke-resources
+          - grafana-spoke-resources
+          - k8s-core-resources
+          - k8s-devops
+          - k8s-istio
+          - k8s-obs
+          - k8s-spoke-resources
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.layer }}
+  cancel-in-progress: true
+
+env:
+  ARM_USE_OIDC: "true"
+
+jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.filter-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform Matrix
+        id: tf-setup
+        uses: ./.github/actions/tf-setup
+
+      - name: Filter Matrix by Selected Layer
+        id: filter-matrix
+        env:
+          FULL_MATRIX: ${{ steps.tf-setup.outputs.matrix }}
+          SELECTED_LAYER: ${{ inputs.layer }}
+        run: |
+          echo "Full matrix: $FULL_MATRIX"
+          echo "Selected layer: $SELECTED_LAYER"
+          
+          # Filter matrix to only include the selected layer
+          FILTERED_MATRIX=$(echo "$FULL_MATRIX" | jq --arg layer "$SELECTED_LAYER" '
+            .include as $items |
+            {"include": ($items | map(select(.layer == $layer)))}
+          ' | jq -c '.')
+          
+          echo "Filtered matrix: $FILTERED_MATRIX"
+          echo "matrix=$FILTERED_MATRIX" >> $GITHUB_OUTPUT
+
+  # Generate dynamic jobs for each environment of the selected layer
+  generate-jobs:
+    needs: setup
+    if: needs.setup.outputs.matrix != '{"include":[]}'
+    runs-on: ubuntu-24.04
+    outputs:
+      job-matrix: ${{ steps.generate.outputs.job-matrix }}
+    steps:
+      - name: Generate job matrix
+        id: generate
+        env:
+          MATRIX: ${{ needs.setup.outputs.matrix }}
+        run: |
+          echo "Matrix: $MATRIX"
+          
+          # Transform matrix to job names
+          JOB_MATRIX=$(echo "$MATRIX" | jq '
+            {
+              "include": [
+                .include[] | {
+                  "layer": .layer,
+                  "environment": .environment,
+                  "aks-cluster-name": (.["aks-cluster-name"] // ""),
+                  "aks-resource-group": (.["aks-resource-group"] // ""),
+                  "vars": (.vars | join(",")),
+                  "runs-on": .["runs-on"],
+                  "job-name": "\(.layer)-\(.environment)"
+                }
+              ]
+            }
+          ' | jq -c '.')
+          
+          echo "Job matrix: $JOB_MATRIX"
+          echo "job-matrix=$JOB_MATRIX" >> $GITHUB_OUTPUT
+
+  # Dynamically call the template for each environment of the selected layer
+  terraform:
+    name: ${{ matrix.layer }} (${{ matrix.environment }})
+    needs: [setup, generate-jobs]
+    if: needs.setup.outputs.matrix != '{"include":[]}'
+    strategy:
+      matrix: ${{ fromJson(needs.generate-jobs.outputs.job-matrix) }}
+    uses: ./.github/workflows/template-terraform.yml
+    with:
+      layer: ${{ matrix.layer }}
+      environment: ${{ matrix.environment }}
+      aks-cluster-name: ${{ matrix.aks-cluster-name }}
+      aks-resource-group: ${{ matrix.aks-resource-group }}
+      vars: ${{ matrix.vars }}
+      runs-on: ${{ matrix.runs-on }}
+    secrets: inherit

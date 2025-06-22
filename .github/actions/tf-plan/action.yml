@@ -1,0 +1,174 @@
+name: "Terraform Plan"
+description: "Runs Terraform plan with standard configuration"
+
+inputs:
+  layer:
+    description: "Terraform layer name"
+    required: true
+  environment:
+    description: "Environment name"
+    required: true
+  azure-client-id:
+    description: "Azure Client ID"
+    required: true
+  azure-subscription-id:
+    description: "Azure Subscription ID"
+    required: true
+  azure-tenant-id:
+    description: "Azure Tenant ID"
+    required: true
+  aks-cluster-name:
+    description: "AKS cluster name (optional)"
+    required: false
+    default: ""
+  aks-resource-group:
+    description: "AKS resource group (optional)"
+    required: false
+    default: ""
+  vars:
+    description: "Comma-separated list of variables to set from secrets"
+    required: true
+  secrets:
+    description: "JSON object containing all secrets"
+    required: true
+
+outputs:
+  plan-exitcode:
+    description: "Terraform plan exit code"
+    value: ${{ steps.plan.outputs.tf_plan_detailed_exitcode_value }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set layer basename for backend key
+      shell: bash
+      env:
+        LAYER_PATH: ${{ inputs.layer }}
+      run: |
+        LAYER_NAME=$(basename "$LAYER_PATH")
+        echo "TF_BACKEND_KEY=$LAYER_NAME" >> $GITHUB_ENV
+
+    - name: "Login via Azure CLI"
+      uses: azure/login@v2
+      with:
+        client-id: ${{ inputs.azure-client-id }}
+        tenant-id: ${{ inputs.azure-tenant-id }}
+        subscription-id: ${{ inputs.azure-subscription-id }}
+
+    - name: "Create kubeconfig file"
+      if: ${{ inputs.aks-cluster-name != '' && inputs.aks-resource-group != '' }}
+      shell: bash
+      run: |
+        az aks get-credentials --resource-group $AKS_RESOURCE_GROUP --name $AKS_CLUSTER_NAME --overwrite-existing
+        kubelogin convert-kubeconfig -l azurecli
+        echo "TF_VAR_aks_cluster_name=${AKS_CLUSTER_NAME}" >> $GITHUB_ENV
+        echo "TF_VAR_aks_resource_group_name=${AKS_RESOURCE_GROUP}" >> $GITHUB_ENV
+      env:
+        AKS_CLUSTER_NAME: ${{ inputs.aks-cluster-name }}
+        AKS_RESOURCE_GROUP: ${{ inputs.aks-resource-group }}
+
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: "latest"
+        terraform_wrapper: true
+
+    - name: Configure Terraform plugin cache
+      shell: bash
+      run: |
+        echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >> $GITHUB_ENV
+        mkdir --parents "$HOME/.terraform.d/plugin-cache"
+
+    - name: Restore Terraform provider cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.terraform.d/plugin-cache
+        key: ${{ runner.os }}-terraform-${{ inputs.layer }}-${{ hashFiles(format('infra/{0}/backend.tf', inputs.layer)) }}
+        restore-keys: |
+          ${{ runner.os }}-terraform-${{ inputs.layer }}-
+          ${{ runner.os }}-terraform-
+
+    - name: Set Terraform variables from secrets
+      shell: bash
+      run: |
+        echo "Setting variables: $KEYS"
+
+        for key in $(echo $KEYS | tr "," "\n"); do
+          SECRET_KEY=`echo $key | tr '[:lower:]' '[:upper:]'`
+          VAL=`jq -r ".${SECRET_KEY}" <<< $SECRETS`
+          if (( $(grep -c . <<<"${VAL}") > 1 )); then
+            #VAL has more than one line
+            echo "TF_VAR_${key}<<EOF" >> $GITHUB_ENV
+            echo ${VAL} >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
+            echo "${key}<<EOF" >> $GITHUB_ENV
+            echo ${VAL} >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
+          else
+            #VAL has at most one line
+            echo "TF_VAR_${key}=${VAL}" >> $GITHUB_ENV
+            echo "${key}=${VAL}" >> $GITHUB_ENV
+          fi
+        done
+      env:
+        KEYS: ${{ inputs.vars }}
+        SECRETS: ${{ inputs.secrets }}
+
+    - name: Init
+      shell: bash
+      run: terraform init -backend-config key=$TF_BACKEND_KEY-$ENVIRONMENT.tfstate -backend-config subscription_id=$ARM_SUBSCRIPTION_ID
+      working-directory: infra/${{ inputs.layer }}
+      env:
+        ARM_SUBSCRIPTION_ID: ${{ inputs.azure-subscription-id }}
+        ENVIRONMENT: ${{ inputs.environment }}
+
+    - name: 🦋 Terraform Plan
+      id: plan
+      shell: bash
+      run: |
+        export exitcode=0
+        terraform plan -out=tfplan -var-file="vars/${ENVIRONMENT}.tfvars" -detailed-exitcode || export exitcode=$?
+        echo "exitcode=$exitcode"
+        echo "tf_plan_detailed_exitcode_value=$exitcode" >> $GITHUB_OUTPUT
+
+        # Generate human-readable output from the plan
+        terraform show -no-color tfplan > plan.txt
+
+        # Create a summary of the plan for the GitHub Actions summary page
+        echo "## Terraform Plan Summary for Layer: $TF_BACKEND_KEY (Environment: $ENVIRONMENT)" > $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        if [ $exitcode -eq 0 ]; then
+          echo "✅ **No changes detected. Your infrastructure matches the configuration.**" >> $GITHUB_STEP_SUMMARY
+        elif [ $exitcode -eq 2 ]; then
+          echo "⚠️ **Changes detected in the plan. Resources will be modified.**" >> $GITHUB_STEP_SUMMARY
+
+          # Extract the plan summary (add, change, destroy counts)
+          PLAN_SUMMARY=$(grep -A 2 "Plan:" plan.txt || echo "No plan summary found")
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Plan Changes" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "$PLAN_SUMMARY" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          # Add detailed plan
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Detailed Plan" >> $GITHUB_STEP_SUMMARY
+          echo '```terraform' >> $GITHUB_STEP_SUMMARY
+          cat plan.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        elif [ $exitcode -eq 1 ]; then
+          echo "❌ **Terraform Plan Failed!**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check the logs for more details." >> $GITHUB_STEP_SUMMARY
+        fi
+
+        if [ $exitcode -eq 1 ]; then
+          echo Terraform Plan Failed!
+          exit 1
+        else 
+          exit 0
+        fi
+      working-directory: infra/${{ inputs.layer }}
+      env:
+        ENVIRONMENT: ${{ inputs.environment }}
