@@ -3,278 +3,121 @@ name: template-terraform
 on:
   workflow_call:
     inputs:
-      working-dir:
+      layer:
+        description: "Terraform layer name"
         required: true
         type: string
       environment:
-        required: false
-        type: string
-      backend-key:
+        description: "Environment name"
         required: true
         type: string
       aks-cluster-name:
+        description: "AKS cluster name (optional)"
         required: false
         type: string
         default: ""
       aks-resource-group:
+        description: "AKS resource group (optional)"
         required: false
         type: string
         default: ""
       vars:
+        description: "Comma-separated list of variables to set from secrets"
+        required: true
+        type: string
+      runs-on:
+        description: "Runner type"
         required: false
         type: string
-        default: ''
-      private-runner:
-          required: false
-          type: string
-          default: ""
+        default: "ubuntu-24.04"
 
 permissions:
   contents: write
   id-token: write
 
 env:
-  TF_BACKEND_KEY: ${{ inputs.backend-key }}
   TF_VAR_env: ${{ inputs.environment }}
   ENVIRONMENT: ${{ inputs.environment }}
   ARM_USE_OIDC: "true"
 
 jobs:
-
   analyze:
-    runs-on: ubuntu-24.04
+    name: analyze
+    runs-on: ${{ inputs.runs-on }}
     environment: plan-${{ inputs.environment }}
     env:
-      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID  }}
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
+      - name: Terraform Analyze
+        uses: ./.github/actions/tf-analyze
         with:
-          terraform_version: 'latest'
-          terraform_wrapper: false
+          layer: ${{ inputs.layer }}
+          environment: ${{ inputs.environment }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
 
-      - name: Configure Terraform plugin cache
-        run: |
-          echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >>"$GITHUB_ENV"
-          mkdir --parents "$HOME/.terraform.d/plugin-cache"
-      
-      - name: Restore Terraform provider cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.terraform.d/plugin-cache
-          key: ${{ runner.os }}-terraform-${{ inputs.working-dir }}-${{ hashFiles(format('{0}/backend.tf', inputs.working-dir)) }}
-          restore-keys: |
-            ${{ runner.os }}-terraform-${{ inputs.working-dir }}-
-            ${{ runner.os }}-terraform-
-
-      - name: Terraform Fmt
-        run: terraform fmt -recursive -check
-        working-directory: ${{ inputs.working-dir }}
-        
-      - name: Init
-        run: terraform init -backend-config key=$TF_BACKEND_KEY-$ENVIRONMENT.tfstate -backend-config subscription_id=$ARM_SUBSCRIPTION_ID
-        working-directory: ${{ inputs.working-dir }}
-
-      - name: Validate
-        run: terraform validate
-        working-directory: ${{ inputs.working-dir }}
-
-      - name: Check terraform with Checkov
-        id: checkov
-        uses: using-system/devops/github/actions/checkov@main
-        with:
-          working-directory:  ${{ inputs.working-dir }}
-
-          
   plan:
+    name: plan
+    needs: analyze
+    runs-on: ${{ inputs.runs-on }}
     environment: plan-${{ inputs.environment }}
-    needs: [ analyze]
-    runs-on: ${{ inputs.private-runner == '' && 'ubuntu-24.04' || inputs.private-runner }}
     env:
-      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID  }}
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      TF_PLUGIN_CACHE_DIR: $HOME/.terraform.d/plugin-cache
-      
-    steps:
-      - name: Check out the repo
-        uses: actions/checkout@v4    
-
-      - name: "Login via Azure CLI"
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}   
-
-      - id: kubeconfig
-        if: ${{ inputs.aks-cluster-name != '' && inputs.aks-resource-group != '' }}
-        name: "Create kubeconfig file"
-        run: |
-          az aks get-credentials --resource-group $AKS_RESOURCE_GROUP --name $AKS_CLUSTER_NAME --overwrite-existing
-          kubelogin convert-kubeconfig -l azurecli
-          echo "TF_VAR_aks_cluster_name=${AKS_CLUSTER_NAME}" >> $GITHUB_ENV
-          echo "TF_VAR_aks_resource_group_name=${AKS_RESOURCE_GROUP}" >> $GITHUB_ENV
-        env:
-            AKS_CLUSTER_NAME: ${{ inputs.aks-cluster-name }}
-            AKS_RESOURCE_GROUP: ${{ inputs.aks-resource-group }}          
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 'latest'
-          terraform_wrapper: true
-
-      - name: Configure Terraform plugin cache
-        run: |
-          echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >>"$GITHUB_ENV"
-          mkdir --parents "$HOME/.terraform.d/plugin-cache"
-
-      - name: Restore Terraform provider cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.terraform.d/plugin-cache
-          key: ${{ runner.os }}-terraform-${{ inputs.working-dir }}-${{ hashFiles(format('{0}/backend.tf', inputs.working-dir)) }}
-          restore-keys: |
-            ${{ runner.os }}-terraform-${{ inputs.working-dir }}-
-            ${{ runner.os }}-terraform-
-
-      - name: Init
-        run: terraform init -backend-config key=$TF_BACKEND_KEY-$ENVIRONMENT.tfstate -backend-config subscription_id=$ARM_SUBSCRIPTION_ID
-        working-directory: ${{ inputs.working-dir }}
-
-      - run: |
-          for key in $(echo $KEYS  | tr "," "\n"); do
-            SECRET_KEY=`echo $key | tr '[:lower:]' '[:upper:]'`
-            VAL=`jq -r ".${SECRET_KEY}" <<< $SECRETS`
-            if (( $(grep -c . <<<"${VAL}") > 1 )); then
-              #VAL has more than one line
-              echo "TF_VAR_${key}<<EOF" >> $GITHUB_ENV
-              echo ${VAL} >> $GITHUB_ENV
-              echo "EOF" >> $GITHUB_ENV
-              echo "${key}<<EOF" >> $GITHUB_ENV
-              echo ${VAL} >> $GITHUB_ENV
-              echo "EOF" >> $GITHUB_ENV
-            else
-              #VAL has at most one line
-              echo "TF_VAR_${key}=${VAL}" >> $GITHUB_ENV
-              echo "${key}=${VAL}" >> $GITHUB_ENV
-            fi
-          done
-        env:
-          KEYS: ${{ inputs.vars }}
-          SECRETS: ${{ toJSON(secrets) }}
-
-      - name: Plan
-        id: plan
-        run: |
-          terraform plan -out=tfplan -var-file="vars/${ENVIRONMENT}.tfvars" -detailed-exitcode | tee plan_output.txt
-
-          PLAN_EXIT_CODE=${PIPESTATUS[0]}
-          if [ $PLAN_EXIT_CODE -ne 0 ]; then
-            echo "Terraform plan failed with exit code $PLAN_EXIT_CODE."
-            exit 1
-          fi
-          
-          if grep -q "Infrastructure is up-to-date." plan_output.txt; then
-            echo "changes=false" >> "$GITHUB_OUTPUT"
-          elif grep -q "Your infrastructure matches the configuration." plan_output.txt; then
-            echo "changes=false" >> "$GITHUB_OUTPUT"
-          elif grep -q "Plan:" plan_output.txt; then
-            echo "changes=true" >> "$GITHUB_OUTPUT"
-          else
-            exit 1
-          fi
-        working-directory: ${{ inputs.working-dir }}
-
     outputs:
-      changes: ${{ steps.plan.outputs.changes }}
+      plan-exitcode: ${{ steps.terraform-plan.outputs.plan-exitcode }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Terraform Plan
+        id: terraform-plan
+        uses: ./.github/actions/tf-plan
+        with:
+          layer: ${{ inputs.layer }}
+          environment: ${{ inputs.environment }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          aks-cluster-name: ${{ inputs.aks-cluster-name }}
+          aks-resource-group: ${{ inputs.aks-resource-group }}
+          vars: ${{ inputs.vars }}
+          secrets: ${{ toJSON(secrets) }}
 
   apply:
-    needs: [ plan]
-    runs-on: ${{ inputs.private-runner == '' && 'ubuntu-24.04' || inputs.private-runner }}
-    if: needs.plan.outputs.changes == 'true'
+    name: apply
+    needs: [analyze, plan]
+    # Only run apply if plan detected changes (exitcode = 2)
+    if: needs.plan.outputs.plan-exitcode == '2'
     environment: ${{ inputs.environment }}
+    runs-on: ${{ inputs.runs-on }}
     env:
-      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID  }}
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-
+    
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v4         
-
-      - name: "Login via Azure CLI"
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}  
-           
-      - id: kubeconfig
-        if: ${{ inputs.aks-cluster-name != '' && inputs.aks-resource-group != '' }}
-        name: "Create kubeconfig file"
-        run: |
-          az aks get-credentials --resource-group $AKS_RESOURCE_GROUP --name $AKS_CLUSTER_NAME --overwrite-existing
-          kubelogin convert-kubeconfig -l azurecli
-          echo "TF_VAR_aks_cluster_name=${AKS_CLUSTER_NAME}" >> $GITHUB_ENV
-          echo "TF_VAR_aks_resource_group_name=${AKS_RESOURCE_GROUP}" >> $GITHUB_ENV
-        env:
-            AKS_CLUSTER_NAME: ${{ inputs.aks-cluster-name }}
-            AKS_RESOURCE_GROUP: ${{ inputs.aks-resource-group }}          
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 'latest'
-          terraform_wrapper: true
-
-      - name: Configure Terraform plugin cache
-        run: |
-          echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >>"$GITHUB_ENV"
-          mkdir --parents "$HOME/.terraform.d/plugin-cache"
-
-      - name: Restore Terraform provider cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.terraform.d/plugin-cache
-          key: ${{ runner.os }}-terraform-${{ inputs.working-dir }}-${{ hashFiles(format('{0}/backend.tf', inputs.working-dir)) }}
-          restore-keys: |
-            ${{ runner.os }}-terraform-${{ inputs.working-dir }}-
-            ${{ runner.os }}-terraform-
-   
-      - name: Init
-        run: terraform init -backend-config key=$TF_BACKEND_KEY-$ENVIRONMENT.tfstate -backend-config subscription_id=$ARM_SUBSCRIPTION_ID
-        working-directory: ${{ inputs.working-dir }}
-      
-      - run: |
-          for key in $(echo $KEYS  | tr "," "\n"); do
-            SECRET_KEY=`echo $key | tr '[:lower:]' '[:upper:]'`
-            VAL=`jq -r ".${SECRET_KEY}" <<< $SECRETS`
-            if (( $(grep -c . <<<"${VAL}") > 1 )); then
-              #VAL has more than one line
-              echo "TF_VAR_${key}<<EOF" >> $GITHUB_ENV
-              echo ${VAL} >> $GITHUB_ENV
-              echo "EOF" >> $GITHUB_ENV
-              echo "${key}<<EOF" >> $GITHUB_ENV
-              echo ${VAL} >> $GITHUB_ENV
-              echo "EOF" >> $GITHUB_ENV
-            else
-              #VAL has at most one line
-              echo "TF_VAR_${key}=${VAL}" >> $GITHUB_ENV
-              echo "${key}=${VAL}" >> $GITHUB_ENV
-            fi
-          done
-        env:
-          KEYS: ${{ inputs.vars }}
-          SECRETS: ${{ toJSON(secrets) }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -var-file="vars/${ENVIRONMENT}.tfvars"
-        working-directory: ${{ inputs.working-dir }}
+        uses: ./.github/actions/tf-apply
+        with:
+          layer: ${{ inputs.layer }}
+          environment: ${{ inputs.environment }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          aks-cluster-name: ${{ inputs.aks-cluster-name }}
+          aks-resource-group: ${{ inputs.aks-resource-group }}
+          vars: ${{ inputs.vars }}
+          secrets: ${{ toJSON(secrets) }}

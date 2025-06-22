@@ -1,0 +1,55 @@
+name: "Terraform Setup"
+description: "Converts infra/config.yaml to GitHub Actions matrix format"
+
+inputs:
+  config-file:
+    description: "Path to the configuration YAML file"
+    required: false
+    default: "infra/config.yaml"
+
+outputs:
+  matrix:
+    description: "GitHub Actions matrix in JSON format"
+    value: ${{ steps.convert-yaml.outputs.matrix }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Convert YAML config to matrix
+      id: convert-yaml
+      shell: bash
+      run: |
+        CONFIG_FILE="${{ inputs.config-file }}"
+
+        if [ ! -f "$CONFIG_FILE" ]; then
+          echo "Configuration file not found: $CONFIG_FILE"
+          exit 1
+        fi
+
+        echo "Reading configuration from: $CONFIG_FILE"
+
+        # Convert YAML to JSON matrix format
+        # First convert YAML to JSON, then transform to matrix format
+        FULL_JSON=$(yq eval -o=json "$CONFIG_FILE")
+        echo "Full JSON: $FULL_JSON"
+
+        # Transform to matrix format
+        MATRIX=$(echo "$FULL_JSON" | jq '
+          {
+            "include": [
+              .layers[] | 
+              .envs[] as $env | 
+              {
+                "layer": .name,
+                "environment": $env.name,
+                "runs-on": $env."runs-on",
+                "aks-cluster-name": ($env."aks-cluster-name" // ""),
+                "aks-resource-group": ($env."aks-resource-group" // ""),
+                "vars": (.vars // [])
+              }
+            ]
+          }
+        ' | jq -c '.')
+
+        echo "Generated matrix: $MATRIX"
+        echo "matrix=$MATRIX" >> $GITHUB_OUTPUT

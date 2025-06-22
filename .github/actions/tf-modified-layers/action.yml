@@ -1,0 +1,58 @@
+name: "Calculate Modified Terraform Layers"
+description: "Determines which Terraform layers have been modified in a PR"
+
+inputs:
+  layers-directory:
+    description: "Base working directory for Terraform layers"
+    required: true
+
+outputs:
+  modified_layers:
+    description: "JSON array of modified Terraform layers"
+    value: ${{ steps.process-changed-files.outputs.final_layers }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Calculate directory depth
+      id: calculate-depth
+      shell: bash
+      run: |
+        # Count the number of directory separators in the path and add 1
+        DEPTH=$(echo "${{ inputs.layers-directory }}" | awk -F'/' '{print NF+1}')
+        echo "Directory depth: $DEPTH"
+        echo "depth=$DEPTH" >> $GITHUB_OUTPUT
+
+    - name: Get changed files
+      id: changed-files
+      uses: tj-actions/changed-files@2f7c5bfce28377bc069a65ba478de0a74aa0ca32
+      with:
+        json: true
+        quotepath: false
+        escape_json: false
+        dir_names: "true"
+        files: ${{ inputs.layers-directory }}/**
+        dir_names_max_depth: ${{ steps.calculate-depth.outputs.depth }}
+
+    - name: List all changed files
+      shell: bash
+      run: echo '${{ steps.changed-files.outputs.all_changed_files }}'
+
+    - name: Process changed files
+      id: process-changed-files
+      shell: bash
+      run: |
+        CHANGED_FILES='${{ steps.changed-files.outputs.all_changed_files }}'
+
+        # Check if there are any changed files
+        if [ "$CHANGED_FILES" == "[]" ] || [ -z "$CHANGED_FILES" ]; then
+          echo "No modified layers found. Setting empty array as default."
+          # Set an empty array as the default value
+          echo "final_layers=[]" >> $GITHUB_OUTPUT
+        else
+          # Filter out the modules directory and the root infra directory
+          FILTERED_LAYERS=$(echo "$CHANGED_FILES" | jq -c '[.[] | select(. != "${{ inputs.layers-directory }}/modules" and . != "${{ inputs.layers-directory }}")]')
+          echo "Original changed files: $CHANGED_FILES"
+          echo "Filtered layers (excluding modules and root): $FILTERED_LAYERS"
+          echo "final_layers=$FILTERED_LAYERS" >> $GITHUB_OUTPUT
+        fi

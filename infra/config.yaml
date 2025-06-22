@@ -1,0 +1,102 @@
+layers:
+  - name: "app-spoke-resources"
+    envs:
+      - name: "dev-app"
+        runs-on: "arc-stg-runners"
+        aks-cluster-name: "m8t-aks"
+        aks-resource-group: "m8t-stg-we-aks"
+      - name: "prd-app"
+        runs-on: "arc-stg-runners"
+        aks-cluster-name: "m8t-aks"
+        aks-resource-group: "m8t-stg-we-aks"
+    vars:
+      - "azure_subscription_id"
+      - "azure_tenant_id"
+  - name: "az-hub-network"
+    envs:
+      - name: "hub-infra"
+        runs-on: "ubuntu-24.04"
+        aks-cluster-name: ""
+        aks-resource-group: ""
+    vars:
+      - "azure_subscription_id"
+      - "azure_tenant_id"
+  - name: "az-spoke-network"
+    envs:
+      - name: "stg-infra"
+        runs-on: "ubuntu-24.04"
+        aks-cluster-name: ""
+        aks-resource-group: ""
+    vars:
+      - "azure_subscription_id"
+      - "azure_tenant_id"
+      - "gh_runner_app_id"
+      - "gh_runner_app_private_key"
+  - name: "az-spoke-resources"
+    envs:
+      - name: "stg-infra"
+        runs-on: "arc-stg-runners"
+        aks-cluster-name: ""
+        aks-resource-group: ""
+    vars:
+      - "azure_subscription_id"
+      - "azure_tenant_id"
+  - name: "grafana-spoke-resources"
+    envs:
+      - name: "stg-infra"
+        runs-on: "arc-stg-runners"
+        aks-cluster-name: "m8t-aks"
+        aks-resource-group: "m8t-stg-we-aks"
+    vars:
+      - "azure_subscription_id"
+      - "azure_tenant_id"
+      - "grafana_uri"
+      - "grafana_auth"
+  - name: "k8s-core-resources"
+    envs:
+      - name: "stg-infra"
+        runs-on: "arc-stg-runners"
+        aks-cluster-name: "m8t-aks"
+        aks-resource-group: "m8t-stg-we-aks"
+    vars:
+      - "azure_subscription_id"
+      - "azure_tenant_id"
+  - name: "k8s-devops"
+    envs:
+      - name: "stg-infra"
+        runs-on: "arc-stg-runners"
+        aks-cluster-name: "m8t-aks"
+        aks-resource-group: "m8t-stg-we-aks"
+    vars:
+      - "azure_subscription_id"
+      - "azure_tenant_id"
+      - "gh_runner_app_id"
+      - "gh_runner_app_installation_id"
+      - "gh_runner_app_private_key"
+  - name: "k8s-istio"
+    envs:
+      - name: "stg-infra"
+        runs-on: "arc-stg-runners"
+        aks-cluster-name: "m8t-aks"
+        aks-resource-group: "m8t-stg-we-aks"
+    vars:
+      - "azure_subscription_id"
+      - "azure_tenant_id"
+  - name: "k8s-obs"
+    envs:
+      - name: "stg-infra"
+        runs-on: "arc-stg-runners"
+        aks-cluster-name: "m8t-aks"
+        aks-resource-group: "m8t-stg-we-aks"
+    vars:
+      - "azure_subscription_id"
+      - "azure_tenant_id"
+  - name: "k8s-spoke-resources"
+    envs:
+      - name: "stg-infra"
+        runs-on: "arc-stg-runners"
+        aks-cluster-name: "m8t-aks"
+        aks-resource-group: "m8t-stg-we-aks"
+    vars:
+      - "azure_subscription_id"
+      - "azure_tenant_id"

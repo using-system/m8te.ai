@@ -1,0 +1,74 @@
+name: "Terraform Analyze"
+description: "Runs Terraform analysis (fmt, init, validate, checkov)"
+
+inputs:
+  layer:
+    description: "Terraform layer name"
+    required: true
+  environment:
+    description: "Environment name"
+    required: true
+  azure-client-id:
+    description: "Azure Client ID"
+    required: true
+  azure-subscription-id:
+    description: "Azure Subscription ID"
+    required: true
+  azure-tenant-id:
+    description: "Azure Tenant ID"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set layer basename for backend key
+      shell: bash
+      env:
+        LAYER_PATH: ${{ inputs.layer }}
+      run: |
+        LAYER_NAME=$(basename "$LAYER_PATH")
+        echo "TF_BACKEND_KEY=$LAYER_NAME" >> $GITHUB_ENV
+
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: "latest"
+        terraform_wrapper: false
+
+    - name: Configure Terraform plugin cache
+      shell: bash
+      run: |
+        echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >> $GITHUB_ENV
+        mkdir --parents "$HOME/.terraform.d/plugin-cache"
+
+    - name: Restore Terraform provider cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.terraform.d/plugin-cache
+        key: ${{ runner.os }}-terraform-${{ inputs.layer }}-${{ hashFiles(format('infra/{0}/backend.tf', inputs.layer)) }}
+        restore-keys: |
+          ${{ runner.os }}-terraform-${{ inputs.layer }}-
+          ${{ runner.os }}-terraform-
+
+    - name: Terraform Fmt
+      shell: bash
+      run: terraform fmt -recursive -check
+      working-directory: infra/${{ inputs.layer }}
+
+    - name: Init
+      shell: bash
+      run: terraform init -backend-config key=$TF_BACKEND_KEY-$ENVIRONMENT.tfstate -backend-config subscription_id=$ARM_SUBSCRIPTION_ID
+      working-directory: infra/${{ inputs.layer }}
+      env:
+        ARM_SUBSCRIPTION_ID: ${{ inputs.azure-subscription-id }}
+        ENVIRONMENT: ${{ inputs.environment }}
+
+    - name: Validate
+      shell: bash
+      run: terraform validate
+      working-directory: infra/${{ inputs.layer }}
+
+    - name: Check terraform with Checkov
+      uses: using-system/devops/github/actions/checkov@main
+      with:
+        working-directory: infra/${{ inputs.layer }}
