@@ -16,10 +16,13 @@ on:
   workflow_dispatch:
     inputs:
       component:
-        description: 'Choose the component to deploy (enter folder name from src/components/)'
+        description: 'Choose the component to deploy'
         required: true
-        type: string
-        default: 'accountms'
+        type: choice
+        options:
+          - accountms
+          - gateway
+          - landingapp
 
 permissions:
   contents: write
