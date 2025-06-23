@@ -52,8 +52,8 @@ aks_config = {
       os_disk_type          = "Ephemeral"
       priority              = "Spot"
       eviction_policy       = "Delete"
-      min_count             = 4
-      max_count             = 6
+      min_count             = 2
+      max_count             = 3
       max_pods              = 100
       enable_auto_scaling   = true
       node_taints           = ["kubernetes.azure.com/scalesetpriority=spot:NoSchedule"]

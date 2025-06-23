@@ -150,22 +150,3 @@ resource "kubernetes_horizontal_pod_autoscaler_v2" "istio_api_gateway" {
     }
   }
 }
-
-resource "kubernetes_pod_disruption_budget_v1" "istio_api_gateway" {
-
-  depends_on = [kubernetes_manifest.istio_api_gateway]
-
-
-  metadata {
-    name      = "gateway"
-    namespace = kubernetes_namespace.istio.metadata[0].name
-  }
-  spec {
-    min_available = 1
-    selector {
-      match_labels = {
-        "gateway.networking.k8s.io/gateway-name" = "gateway"
-      }
-    }
-  }
-}
