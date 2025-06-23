@@ -1,0 +1,223 @@
+name: components
+
+run-name: "${{ inputs.component || 'Auto-deploy modified components' }}"
+
+on:
+  pull_request:
+    paths:
+      - "src/components/**"
+      - ".github/workflows/components.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "src/components/**"
+      - ".github/workflows/components.yml"
+  workflow_dispatch:
+    inputs:
+      component:
+        description: 'Choose the component to deploy (enter folder name from src/components/)'
+        required: true
+        type: string
+        default: 'accountms'
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.component || 'auto' }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    outputs:
+      modified_components: ${{ steps.modified-components.outputs.modified_directories }}
+      components_matrix: ${{ steps.filter-components.outputs.components_matrix }}
+      components_list: ${{ steps.filter-components.outputs.components_list }}
+      is_dispatch: ${{ steps.check-trigger.outputs.is_dispatch }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check trigger type
+        id: check-trigger
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "is_dispatch=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_dispatch=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Calculate Modified Components
+        id: modified-components
+        if: github.event_name != 'workflow_dispatch'
+        uses: ./.github/actions/modified-directory
+        with:
+          base-directory: 'src/components'
+
+      - name: Filter Components
+        id: filter-components
+        env:
+          MODIFIED_COMPONENTS: ${{ steps.modified-components.outputs.modified_directories }}
+          SELECTED_COMPONENT: ${{ inputs.component }}
+          IS_DISPATCH: ${{ steps.check-trigger.outputs.is_dispatch }}
+        run: |
+          # Discover all components dynamically
+          echo "Discovering components in src/components/"
+          COMPONENTS=$(find src/components -maxdepth 1 -type d -not -path "src/components" | sed 's|src/components/||' | sort)
+          
+          echo "Available components: $COMPONENTS"
+          
+          # Validate selected component if in dispatch mode
+          if [ "$IS_DISPATCH" = "true" ]; then
+            if ! echo "$COMPONENTS" | grep -q "^$SELECTED_COMPONENT$"; then
+              echo "Error: Component '$SELECTED_COMPONENT' not found in src/components/"
+              echo "Available components: $COMPONENTS"
+              exit 1
+            fi
+          fi
+          
+          # Build dynamic components matrix
+          COMPONENTS_MATRIX='{"include":[]}'
+          for component in $COMPONENTS; do
+            # Generate names dynamically
+            IMAGE_NAME="m8thubinfraweacr.azurecr.io/${component}"
+            APP_NAME="m8t-${component}"
+            
+            # Add to matrix
+            COMPONENTS_MATRIX=$(echo "$COMPONENTS_MATRIX" | jq --arg comp "$component" --arg img "$IMAGE_NAME" --arg app "$APP_NAME" '
+              .include += [{
+                "component": $comp,
+                "image_name": $img,
+                "app_name": $app
+              }]
+            ')
+          done
+          
+          echo "Dynamic components matrix: $COMPONENTS_MATRIX"
+          
+          if [ "$IS_DISPATCH" = "true" ]; then
+            echo "Workflow dispatch mode - filtering by selected component: $SELECTED_COMPONENT"
+            # Filter matrix to only include the selected component
+            FILTERED_MATRIX=$(echo "$COMPONENTS_MATRIX" | jq --arg comp "$SELECTED_COMPONENT" '
+              .include as $items |
+              {"include": ($items | map(select(.component == $comp)))}
+            ' | jq -c '.')
+          else
+            echo "Pull request/push mode - filtering by modified components: $MODIFIED_COMPONENTS"
+            # Filter matrix to only include modified components
+            if [ "$MODIFIED_COMPONENTS" = "[]" ] || [ -z "$MODIFIED_COMPONENTS" ]; then
+              echo "No modified components, returning empty matrix"
+              FILTERED_MATRIX='{"include":[]}'
+            else
+              # Filter the matrix - remove "src/components/" prefix from modified components for comparison
+              FILTERED_MATRIX=$(echo "$COMPONENTS_MATRIX" | jq --argjson modified "$MODIFIED_COMPONENTS" '
+                .include as $items |
+                {"include": ($items | map(select(.component as $comp | $modified | map(gsub("^src/components/"; "")) | index($comp))))}
+              ' | jq -c '.')
+            fi
+          fi
+          
+          echo "Filtered components matrix: $FILTERED_MATRIX"
+          echo "components_matrix=$FILTERED_MATRIX" >> $GITHUB_OUTPUT
+          
+          # Extract just the component names for later use
+          COMPONENTS_LIST=$(echo "$FILTERED_MATRIX" | jq -r '.include[].component' | jq -R -s -c 'split("\n")[:-1]')
+          echo "components_list=$COMPONENTS_LIST" >> $GITHUB_OUTPUT
+
+  build:
+    needs: setup
+    if: needs.setup.outputs.components_matrix != '{"include":[]}'
+    strategy:
+      matrix: ${{ fromJson(needs.setup.outputs.components_matrix) }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump version and push tag
+        id: version-tag
+        uses: ./.github/actions/version-tag
+        with:
+          prefix: ${{ matrix.component }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        id: docker-build
+        uses: ./.github/actions/docker
+        with:
+          dockerfile: src/components/${{ matrix.component }}/Dockerfile
+          working-directory: src/components/${{ matrix.component }}
+          image_name: ${{ matrix.image_name }}
+          version: ${{ steps.version-tag.outputs.version }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+  deploy:
+    needs: [setup, build]
+    if: needs.setup.outputs.components_list != '[]'
+    strategy:
+      matrix:
+        component: ${{ fromJson(needs.setup.outputs.components_list) }}
+        environment:
+          - name: dev-app
+            runs-on: arc-stg-infra-runners
+          - name: prd-app
+            runs-on: arc-stg-infra-runners
+    environment: ${{ matrix.environment.name }}
+    runs-on: ${{ matrix.environment.runs-on }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version tag
+        id: version-tag
+        uses: ./.github/actions/version-tag
+        with:
+          prefix: ${{ matrix.component }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get component config
+        id: component-config
+        env:
+          COMPONENTS_MATRIX: ${{ needs.setup.outputs.components_matrix }}
+          COMPONENT: ${{ matrix.component }}
+          ENVIRONMENT: ${{ matrix.environment.name }}
+          VERSION: ${{ steps.version-tag.outputs.version }}
+        run: |
+          APP_NAME=$(echo "$COMPONENTS_MATRIX" | jq -r --arg comp "$COMPONENT" '.include[] | select(.component == $comp) | .app_name')
+          IMAGE_NAME_BASE=$(echo "$COMPONENTS_MATRIX" | jq -r --arg comp "$COMPONENT" '.include[] | select(.component == $comp) | .image_name')
+          
+          # Use the version from version-tag action
+          FULL_IMAGE_NAME="$IMAGE_NAME_BASE:$VERSION"
+          
+          # Simple namespace logic: m8t-{environment}
+          NAMESPACE="m8t-$ENVIRONMENT"
+          
+          echo "app_name=$APP_NAME" >> $GITHUB_OUTPUT
+          echo "namespace=$NAMESPACE" >> $GITHUB_OUTPUT
+          echo "image_name=$FULL_IMAGE_NAME" >> $GITHUB_OUTPUT
+          echo "Using image: $FULL_IMAGE_NAME"
+
+      - name: Deploy to ${{ matrix.environment.name }}
+        uses: ./.github/actions/k8s-deploy
+        with:
+          environment: ${{ matrix.environment.name }}
+          namespace: ${{ steps.component-config.outputs.namespace }}
+          app-name: ${{ steps.component-config.outputs.app_name }}
+          image: ${{ steps.component-config.outputs.image_name }}
+          aks-cluster-name: m8t-aks
+          aks-resource-group: m8t-stg-infra-we-aks
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

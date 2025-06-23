@@ -1,0 +1,70 @@
+name: "Docker Build and Push"
+description: "Build and push Docker image to Azure Container Registry"
+
+inputs:
+  dockerfile:
+    description: "Path to Dockerfile"
+    required: true
+  working-directory:
+    description: "Working directory for Docker build"
+    required: true
+  image_name:
+    description: "Docker image name"
+    required: true
+  version:
+    description: "Image version/tag"
+    required: true
+  azure-client-id:
+    description: "Azure Client ID"
+    required: true
+  azure-tenant-id:
+    description: "Azure Tenant ID"
+    required: true
+  azure-subscription-id:
+    description: "Azure Subscription ID"
+    required: true
+
+outputs:
+  image_name:
+    description: "Full Docker image name with tag and digest"
+    value: ${{ steps.output.outputs.image_name }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Azure login
+      uses: azure/login@v2
+      with:
+        client-id: ${{ inputs.azure-client-id }}
+        tenant-id: ${{ inputs.azure-tenant-id }}
+        subscription-id: ${{ inputs.azure-subscription-id }}
+
+    - name: Login to Azure Container Registry
+      shell: bash
+      run: |
+        REGISTRY_HOST=$(echo $IMAGE | cut -d'/' -f1)
+        REGISTRY_NAME=$(echo $REGISTRY_HOST | cut -d'.' -f1)
+        az acr login --name $REGISTRY_NAME
+      env:
+        IMAGE: ${{ inputs.image_name }}
+
+    - name: Build and push Docker image
+      id: docker_build
+      uses: docker/build-push-action@v6
+      with:
+        context: ${{ inputs.working-directory }}
+        file: ${{ inputs.dockerfile }}
+        push: true
+        tags: "${{ inputs.image_name }}:${{ inputs.version }}"
+
+    - name: Set output
+      id: output
+      shell: bash
+      run: |
+        echo "image_name=${{ inputs.image_name }}:${{ inputs.version }}@${{ steps.docker_build.outputs.imageid }}" >> $GITHUB_OUTPUT

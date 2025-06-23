@@ -1,8 +1,18 @@
 name: infra
 
-run-name: "${{ inputs.layer }}"
+run-name: "${{ inputs.layer || 'Auto-deploy modified layers' }}"
 
 on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - ".github/workflows/infra.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "infra/**"
+      - ".github/workflows/infra.yml"
   workflow_dispatch:
     inputs:
       layer:
@@ -26,7 +36,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.layer }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.layer || 'auto' }}
   cancel-in-progress: true
 
 env:
@@ -36,34 +46,71 @@ jobs:
   setup:
     runs-on: ubuntu-24.04
     outputs:
+      modified_directories: ${{ steps.modified-layers.outputs.modified_directories }}
       matrix: ${{ steps.filter-matrix.outputs.matrix }}
+      is_dispatch: ${{ steps.check-trigger.outputs.is_dispatch }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check trigger type
+        id: check-trigger
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "is_dispatch=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_dispatch=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Calculate Modified Terraform Layers
+        id: modified-layers
+        if: github.event_name != 'workflow_dispatch'
+        uses: ./.github/actions/modified-directory
+        with:
+          base-directory: 'infra'
 
       - name: Setup Terraform Matrix
         id: tf-setup
         uses: ./.github/actions/tf-setup
 
-      - name: Filter Matrix by Selected Layer
+      - name: Filter Matrix
         id: filter-matrix
         env:
           FULL_MATRIX: ${{ steps.tf-setup.outputs.matrix }}
+          MODIFIED_DIRECTORIES: ${{ steps.modified-layers.outputs.modified_directories }}
           SELECTED_LAYER: ${{ inputs.layer }}
+          IS_DISPATCH: ${{ steps.check-trigger.outputs.is_dispatch }}
         run: |
           echo "Full matrix: $FULL_MATRIX"
-          echo "Selected layer: $SELECTED_LAYER"
           
-          # Filter matrix to only include the selected layer
-          FILTERED_MATRIX=$(echo "$FULL_MATRIX" | jq --arg layer "$SELECTED_LAYER" '
-            .include as $items |
-            {"include": ($items | map(select(.layer == $layer)))}
-          ' | jq -c '.')
+          if [ "$IS_DISPATCH" = "true" ]; then
+            echo "Workflow dispatch mode - filtering by selected layer: $SELECTED_LAYER"
+            # Filter matrix to only include the selected layer
+            FILTERED_MATRIX=$(echo "$FULL_MATRIX" | jq --arg layer "$SELECTED_LAYER" '
+              .include as $items |
+              {"include": ($items | map(select(.layer == $layer)))}
+            ' | jq -c '.')
+          else
+            echo "Pull request/push mode - filtering by modified layers: $MODIFIED_DIRECTORIES"
+            # Filter matrix to only include modified layers
+            if [ "$MODIFIED_DIRECTORIES" = "[]" ] || [ -z "$MODIFIED_DIRECTORIES" ]; then
+              echo "No modified layers, returning empty matrix"
+              FILTERED_MATRIX='{"include":[]}'
+            else
+              # Filter the matrix - remove "infra/" prefix from modified layers for comparison
+              FILTERED_MATRIX=$(echo "$FULL_MATRIX" | jq --argjson modified "$MODIFIED_DIRECTORIES" '
+                .include as $items |
+                {"include": ($items | map(select(.layer as $layer | $modified | map(gsub("^infra/"; "")) | index($layer))))}
+              ' | jq -c '.')
+            fi
+          fi
           
           echo "Filtered matrix: $FILTERED_MATRIX"
           echo "matrix=$FILTERED_MATRIX" >> $GITHUB_OUTPUT
 
-  # Generate dynamic jobs for each environment of the selected layer
+  # Generate dynamic jobs for each layer/environment combination
   generate-jobs:
     needs: setup
     if: needs.setup.outputs.matrix != '{"include":[]}'
@@ -98,7 +145,7 @@ jobs:
           echo "Job matrix: $JOB_MATRIX"
           echo "job-matrix=$JOB_MATRIX" >> $GITHUB_OUTPUT
 
-  # Dynamically call the template for each environment of the selected layer
+  # Dynamically call the template for each layer/environment combination
   terraform:
     name: ${{ matrix.layer }} (${{ matrix.environment }})
     needs: [setup, generate-jobs]
