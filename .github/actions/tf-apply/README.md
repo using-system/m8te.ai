@@ -1,6 +1,6 @@
 # Terraform Apply Action
 
-This action runs a standardized Terraform apply operation with all necessary setup. It first checks for changes and only applies if changes are detected.
+This action runs a standardized Terraform apply operation with auto-approve. It directly applies infrastructure changes without pre-checking for changes.
 
 ## Features
 
@@ -8,9 +8,8 @@ This action runs a standardized Terraform apply operation with all necessary set
 - ✅ Conditional AKS kubeconfig setup
 - ✅ Terraform cache management
 - ✅ Dynamic variable setting from secrets
-- ✅ Pre-apply change detection
-- ✅ Auto-approve for detected changes
-- ✅ Detailed apply output and summary
+- ✅ Direct apply with auto-approve
+- ✅ Simple and efficient workflow
 
 ## Inputs
 
@@ -28,9 +27,7 @@ This action runs a standardized Terraform apply operation with all necessary set
 
 ## Outputs
 
-| Output           | Description                                    |
-| ---------------- | ---------------------------------------------- |
-| `apply-exitcode` | Terraform apply exit code (0=success, 1=error) |
+This action has no outputs. It either succeeds or fails based on the Terraform apply result.
 
 ## Usage
 
@@ -48,6 +45,33 @@ This action runs a standardized Terraform apply operation with all necessary set
     vars: ${{ join(matrix.vars, ',') }}
     secrets: ${{ toJSON(secrets) }}
 ```
+
+## Workflow Integration
+
+This action is typically used in conjunction with the `tf-plan` action:
+
+```yaml
+jobs:
+  plan:
+    # ... plan job configuration
+    outputs:
+      plan-exitcode: ${{ steps.terraform-plan.outputs.plan-exitcode }}
+  
+  apply:
+    needs: plan
+    if: needs.plan.outputs.plan-exitcode == 2  # Only apply if changes detected
+    steps:
+      - name: Terraform Apply
+        uses: ./.github/actions/tf-apply
+        # ... inputs
+```
+
+## Notes
+
+- The action runs `terraform apply -auto-approve` directly
+- No pre-validation is performed (this should be done in the plan phase)
+- Changes detection should be handled by the workflow logic, not the action
+- The action will fail if Terraform apply fails
 
 ## Behavior
 

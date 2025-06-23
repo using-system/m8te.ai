@@ -32,11 +32,6 @@ inputs:
     description: "JSON object containing all secrets"
     required: true
 
-outputs:
-  apply-exitcode:
-    description: "Terraform apply exit code"
-    value: ${{ steps.apply.outputs.tf_apply_exitcode_value }}
-
 runs:
   using: "composite"
   steps:
@@ -126,42 +121,14 @@ runs:
       id: apply
       shell: bash
       run: |
-        export exitcode=0
-
-        # First run plan to check if there are changes
-        terraform plan -out=tfplan -var-file="vars/${ENVIRONMENT}.tfvars" -detailed-exitcode || export plan_exitcode=$?
-
-        if [ $plan_exitcode -eq 0 ]; then
-          echo "✅ **No changes detected. Infrastructure is up to date.**" >> $GITHUB_STEP_SUMMARY
-          echo "tf_apply_exitcode_value=0" >> $GITHUB_OUTPUT
-          echo "No changes to apply"
-          exit 0
-        elif [ $plan_exitcode -eq 2 ]; then
-          echo "⚠️ **Changes detected. Applying infrastructure updates...**"
-          terraform apply -auto-approve tfplan || export exitcode=$?
-          echo "exitcode=$exitcode"
-          echo "tf_apply_exitcode_value=$exitcode" >> $GITHUB_OUTPUT
-        else
-          echo "❌ **Terraform Plan Failed during apply phase!**"
-          exit 1
-        fi
-
-        # Create a summary of the apply for the GitHub Actions summary page
-        echo "## Terraform Apply Summary for Layer: $TF_BACKEND_KEY (Environment: $ENVIRONMENT)" > $GITHUB_STEP_SUMMARY
+        echo "## Terraform Apply for Layer: $TF_BACKEND_KEY (Environment: $ENVIRONMENT)" > $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
+        echo "⚠️ **Applying infrastructure changes...**" >> $GITHUB_STEP_SUMMARY
 
-        if [ $exitcode -eq 0 ]; then
-          echo "✅ **Apply completed successfully. Infrastructure has been updated.**" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ **Terraform Apply Failed!**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Check the logs for more details." >> $GITHUB_STEP_SUMMARY
-        fi
+        # Direct apply with auto-approve
+        terraform apply -auto-approve -var-file="vars/${ENVIRONMENT}.tfvars"
 
-        if [ $exitcode -ne 0 ]; then
-          echo Terraform Apply Failed!
-          exit 1
-        fi
+        echo "✅ **Apply completed successfully. Infrastructure has been updated.**" >> $GITHUB_STEP_SUMMARY
       working-directory: infra/${{ inputs.layer }}
       env:
         ENVIRONMENT: ${{ inputs.environment }}

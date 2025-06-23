@@ -71,7 +71,7 @@ runs:
       uses: hashicorp/setup-terraform@v3
       with:
         terraform_version: "latest"
-        terraform_wrapper: true
+        terraform_wrapper: false
 
     - name: Configure Terraform plugin cache
       shell: bash
@@ -127,7 +127,8 @@ runs:
       shell: bash
       run: |
         export exitcode=0
-        terraform plan -out=tfplan -var-file="vars/${ENVIRONMENT}.tfvars" -detailed-exitcode || export exitcode=$?
+        terraform plan -detailed-exitcode -input=false -out=tfplan -var-file="vars/${ENVIRONMENT}.tfvars" || export exitcode=$?
+
         echo "exitcode=$exitcode"
         echo "tf_plan_detailed_exitcode_value=$exitcode" >> $GITHUB_OUTPUT
 

@@ -146,6 +146,7 @@ jobs:
     if: needs.setup.outputs.components_matrix != '{"include":[]}'
     strategy:
       matrix: ${{ fromJson(needs.setup.outputs.components_matrix) }}
+      fail-fast: false
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -177,6 +178,7 @@ jobs:
             runs-on: arc-stg-infra-runners
           - name: prd-app
             runs-on: arc-stg-infra-runners
+      fail-fast: false
     environment: ${{ matrix.environment.name }}
     runs-on: ${{ matrix.environment.runs-on }}
     steps:

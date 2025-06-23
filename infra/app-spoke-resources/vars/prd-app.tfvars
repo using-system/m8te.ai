@@ -19,7 +19,7 @@ node_selector = {
 }
 
 components = {
-  landing-app = {
+  landingapp = {
     resources = {
       requests = { cpu = "50m", memory = "128Mi" }
       limits   = { cpu = "300m", memory = "384Mi" }
