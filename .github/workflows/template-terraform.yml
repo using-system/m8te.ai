@@ -97,7 +97,7 @@ jobs:
     name: apply
     needs: [analyze, plan]
     # Only run apply if plan detected changes (exitcode = 2)
-    if: needs.plan.outputs.plan-exitcode == '2'
+    if: needs.plan.outputs.plan-exitcode == 2
     environment: ${{ inputs.environment }}
     runs-on: ${{ inputs.runs-on }}
     env:

@@ -152,6 +152,7 @@ jobs:
     if: needs.setup.outputs.matrix != '{"include":[]}'
     strategy:
       matrix: ${{ fromJson(needs.generate-jobs.outputs.job-matrix) }}
+      fail-fast: false
     uses: ./.github/workflows/template-terraform.yml
     with:
       layer: ${{ matrix.layer }}
