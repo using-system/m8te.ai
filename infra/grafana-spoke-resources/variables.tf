@@ -40,3 +40,4 @@ variable "grafana_uri" {
 variable "grafana_auth" {
   description = "Grafana authentication"
 }
+
