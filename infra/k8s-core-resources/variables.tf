@@ -72,7 +72,7 @@ variable "cert_manager_helmchart_version" {
 
 variable "otlp_operator_helmchart_version" {
   description = "OpenTelemetry Operator Helm Chart Version"
-  default     = "0.86.2"
+  default     = "0.90.4"
 }
 
 variable "vpa_helmchart_version" {

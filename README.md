@@ -50,11 +50,11 @@ cat observability.diagram
 ```mermaid
 flowchart TD
     user((User))
-    grafana[Grafana]
+    grafana[Grafana UI]
     component[Components]
     otlp[OpenTelemetry Collector]
     consumer[Observability Stack]
-    prometheus[Prometheus / Thanos]
+    prometheus[Prometheus]
     loki[Loki]
     tempo[Tempo]
     pyroscope[Pyroscope]
@@ -63,8 +63,8 @@ flowchart TD
     component -->|gRPC| otlp
     grafana -->|gRPC| consumer
     otlp -->|gRPC| consumer
-    consumer -->|gRPC/metrics| prometheus
-    consumer -->|gRPC/logs| loki
-    consumer -->|gRPC/trace| tempo
-    consumer -->|gRPC/profiler| pyroscope
+    consumer -->|metrics| prometheus
+    consumer -->|logs| loki
+    consumer -->|traces| tempo
+    consumer -->|profiler| pyroscope
 ```

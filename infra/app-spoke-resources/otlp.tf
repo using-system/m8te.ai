@@ -5,75 +5,158 @@ locals {
   ]
 }
 
+resource "kubernetes_secret" "grafana_cloud_config" {
+  for_each = toset(local.otlp_namespaces)
+
+  metadata {
+    name      = "grafana-cloud-config"
+    namespace = each.value
+  }
+  data = {
+    password = data.terraform_remote_state.k8s_obs.outputs.grafana_config.global.auth
+  }
+}
+
+
 resource "kubectl_manifest" "otlp" {
   for_each = toset(local.otlp_namespaces)
 
-  yaml_body = <<YAML
-apiVersion: opentelemetry.io/v1beta1
-kind: OpenTelemetryCollector
-metadata:
-  name: otlp-app-sidecar
-  namespace: ${each.value}
-spec:
-  mode: sidecar
-  args:
-    feature-gates: "+service.profilesSupport"
-  resources:
-    requests:
-      cpu:    ${var.otlp.resources.requests.cpu}
-      memory: ${var.otlp.resources.requests.memory}
-    limits:
-      cpu:    ${var.otlp.resources.limits.cpu}
-      memory: ${var.otlp.resources.limits.memory}
-  config:
-    receivers:
-      otlp:
-        protocols:
-          grpc: {}
-    processors:
-      batch: {}
-      k8sattributes:
-        passthrough: true
-    exporters:
-      prometheusremotewrite:
-        endpoint: "http://${local.prometheus_server_service}/api/v1/write"
-      otlphttp/loki:
-        endpoint: "http://${local.loki_gateway_service}:3100/otlp"
-        headers:
-          X-Scope-OrgID: "default"
-      otlp/tempo:
-        endpoint: "http://${local.tempo_distributor_service}:4317"
-        tls:
-          insecure: true
-        headers:
-          X-Scope-OrgID: "default"
-      otlp/pyroscope:
-        endpoint: "${local.pyroscope_distributor_service}:4040"
-        tls:
-          insecure: true
-        headers:
-          X-Scope-OrgID: "default"
-      debug:
-        verbosity: detailed
-    service:
-      pipelines:
-        metrics:
-          receivers: [otlp]
-          processors: [batch, k8sattributes]
-          exporters: [prometheusremotewrite]
-        logs:
-          receivers: [otlp]
-          processors: [batch, k8sattributes]
-          exporters: [otlphttp/loki]
-        traces:
-          receivers: [otlp]
-          processors: [batch, k8sattributes]
-          exporters: [otlp/tempo]
-        profiles:
-          receivers: [otlp]
-          exporters: [otlp/pyroscope]
+  depends_on = [kubernetes_secret.grafana_cloud_config]
 
-YAML
+  yaml_body = yamlencode({
+    apiVersion = "opentelemetry.io/v1beta1"
+    kind       = "OpenTelemetryCollector"
+    metadata = {
+      name      = "otlp-app-sidecar"
+      namespace = each.value
+    }
+    spec = {
+      mode = "sidecar"
+      args = {
+        feature-gates = "+service.profilesSupport"
+      }
+      resources = {
+        requests = {
+          cpu    = var.otlp.resources.requests.cpu
+          memory = var.otlp.resources.requests.memory
+        }
+        limits = {
+          cpu    = var.otlp.resources.limits.cpu
+          memory = var.otlp.resources.limits.memory
+        }
+      }
+      env = [
+        {
+          name = "GRAFANA_CLOUD_PASSWORD"
+          valueFrom = {
+            secretKeyRef = {
+              name = kubernetes_secret.grafana_cloud_config[each.value].metadata[0].name
+              key  = "password"
+            }
+          }
+        }
+      ]
+      config = {
+        extensions = {
+          "basicauth/otlp" = {
+            client_auth = {
+              username = data.terraform_remote_state.k8s_obs.outputs.grafana_config.otlp.username
+              password = "$${GRAFANA_CLOUD_PASSWORD}"
+            }
+          },
+          "basicauth/loki" = {
+            client_auth = {
+              username = data.terraform_remote_state.k8s_obs.outputs.grafana_config.loki.username
+              password = "$${GRAFANA_CLOUD_PASSWORD}"
+            }
+          },
+          "basicauth/prometheus" = {
+            client_auth = {
+              username = data.terraform_remote_state.k8s_obs.outputs.grafana_config.prometheus.username
+              password = "$${GRAFANA_CLOUD_PASSWORD}"
+            }
+          }
+        }
+        receivers = {
+          otlp = {
+            protocols = {
+              grpc = {}
+            }
+          }
+        }
+        processors = {
+          batch = {}
+          k8sattributes = {
+            passthrough = true
+          }
+          attributes = {
+            actions = [
+              {
+                key    = "environment"
+                value  = var.env
+                action = "upsert"
+              }
+            ]
+          }
+        }
+        exporters = {
+          "loki/grafana" = {
+            endpoint = data.terraform_remote_state.k8s_obs.outputs.grafana_config.loki.endpoint
+            auth = {
+              authenticator = "basicauth/loki"
+            }
+          }
+          "prometheusremotewrite/grafana" = {
+            endpoint = data.terraform_remote_state.k8s_obs.outputs.grafana_config.prometheus.endpoint
+            auth = {
+              authenticator = "basicauth/prometheus"
+            }
+            external_labels = {
+              cluster            = data.terraform_remote_state.k8s_obs.outputs.grafana_config.global.cluster_name
+              "k8s.cluster.name" = data.terraform_remote_state.k8s_obs.outputs.grafana_config.global.cluster_name
+            }
+          }
+          "otlphttp/grafana" = {
+            endpoint = data.terraform_remote_state.k8s_obs.outputs.grafana_config.otlp.endpoint
+            auth = {
+              authenticator = "basicauth/otlp"
+            }
+          }
+          debug = {
+            verbosity = "detailed"
+          }
+        }
+        service = {
+          extensions = [
+            "basicauth/otlp",
+            "basicauth/loki",
+            "basicauth/prometheus"
+          ]
+          pipelines = {
+            metrics = {
+              receivers  = ["otlp"]
+              processors = ["attributes", "batch", "k8sattributes"]
+              exporters  = ["prometheusremotewrite/grafana"]
+            }
+            logs = {
+              receivers  = ["otlp"]
+              processors = ["attributes", "batch", "k8sattributes"]
+              exporters  = ["loki/grafana"]
+            }
+            traces = {
+              receivers  = ["otlp"]
+              processors = ["attributes", "batch", "k8sattributes"]
+              exporters  = ["otlphttp/grafana"]
+            }
+            profiles = {
+              receivers = ["otlp"]
+              exporters = ["otlphttp/grafana"]
+            }
+          }
+        }
+      }
+    }
+  })
 
   ignore_fields = [
     "metadata.annotations",

@@ -91,6 +91,7 @@ layers:
     vars:
       - "azure_subscription_id"
       - "azure_tenant_id"
+      - "grafana_auth"
   - name: "k8s-spoke-resources"
     envs:
       - name: "stg-infra"

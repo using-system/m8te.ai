@@ -2,6 +2,8 @@
 # Global Variables
 #------------------------------------------------------------------------------
 
+env-infra = "stg-infra"
+
 tags = {
   project       = "m8t"
   env           = "prd-app"
