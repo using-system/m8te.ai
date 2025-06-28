@@ -2,6 +2,8 @@
 # Global Variables
 #------------------------------------------------------------------------------
 
+env-infra = "stg-infra"
+
 tags = {
   project       = "m8t"
   env           = "dev-app"
@@ -51,3 +53,4 @@ otlp = {
     limits   = { cpu = "150m", memory = "384Mi" }
   }
 }
+

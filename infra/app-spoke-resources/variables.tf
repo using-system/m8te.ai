@@ -24,6 +24,10 @@ variable "env" {
   description = "Environment name"
 }
 
+variable "env-infra" {
+  description = "Infra Environment name"
+}
+
 variable "project_name" {
   description = "Project name"
   default     = "m8t"
